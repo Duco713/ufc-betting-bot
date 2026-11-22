@@ -169,7 +169,9 @@ def main() -> int:
             fights.append({
                 "id": m["fight_id"], "card": m["kaart"], "order": m["nr"], "weight_class": m["klasse"],
                 "rounds": m["rondes"], "a": a, "b": b,
-                "odds_a": m.get("odds_a"), "odds_b": m.get("odds_b"),
+                "odds_a": None if p is None or pd.isna(p.odds_a) else int(p.odds_a),
+                "odds_b": None if p is None or pd.isna(p.odds_b) else int(p.odds_b),
+                "odds_info": None if p is None or not isinstance(p.get("odds_info"), str) else json.loads(p["odds_info"]),
                 "p_model": None if p is None else p.prob_model_a, "p_market": None if p is None else p.prob_market_a,
                 "p_final": None if p is None else p.prob_final_a, "edge": None if p is None else p.edge,
                 "pick": None if p is None else p.pick, "stake": None if p is None else p.stake,
@@ -243,6 +245,14 @@ def main() -> int:
 
     # ---------------- data-status
     counts = db.row_counts(con)
+    allf = [f for e in events if not e.get("none") for f in e["fights"] if f["card"] != "onbevestigd"]
+    n_sb = sum(1 for f in allf if (f.get("odds_info") or {}).get("kind") == "sportsbooks")
+    n_pm = sum(1 for f in allf if (f.get("odds_info") or {}).get("kind") == "prediction market")
+    last_snap = con.execute("SELECT max(captured_at) FROM odds_snapshots").fetchall()[0][0]
+    n_snap = con.execute("SELECT count(DISTINCT captured_at) FROM odds_snapshots").fetchall()[0][0]
+    odds_status = {"name": "Odds (komend)", "source": "BestFightOdds.com", "until": str(last_snap)[:16] if last_snap else None,
+                   "status": "ok" if n_sb + n_pm == len(allf) else "deels",
+                   "note": f"{n_sb + n_pm} van {len(allf)} gevechten: {n_sb} via bookmakers, {n_pm} alleen Polymarket · {n_snap} meting(en)"}
     status = {
         "counts": counts,
         "sources": [
@@ -252,8 +262,7 @@ def main() -> int:
              "note": f"{counts['fight_stats_round']:,} rijen".replace(",", ".")},
             {"name": "Odds (historisch)", "source": "Kaggle mdabbert", "until": "2026-03-28", "status": "achter",
              "note": "Slotodds, 95% gekoppeld"},
-            {"name": "Odds (komend)", "source": "ufcalendar.com (handmatig)", "until": "2026-11-22", "status": "deels",
-             "note": "Alleen 4 van 19 gevechten hebben odds"},
+            odds_status,
             {"name": "ufcstats-scraper", "source": "ufcstats.com", "until": None, "status": "fout",
              "note": "Site toont bot-controle; scraper stopt netjes"},
             {"name": "Nieuws & kamp", "source": "nog niet gebouwd", "until": None, "status": "uit", "note": "Fase 7"},
@@ -270,7 +279,7 @@ def main() -> int:
         "pipeline": [
             {"step": "Kaggle-import", "ok": True}, {"step": "Features (point-in-time)", "ok": True},
             {"step": "Walk-forward backtest", "ok": True}, {"step": "Voorspellingen komende kaarten", "ok": True},
-            {"step": "Live odds ophalen", "ok": False}, {"step": "Nieuws & kamp", "ok": False},
+            {"step": "Live odds ophalen", "ok": True}, {"step": "Nieuws & kamp", "ok": False},
         ],
     }
 

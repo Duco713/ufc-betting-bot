@@ -17,6 +17,7 @@ import pandas as pd
 
 from src import db
 from src.features.build import build_all, resolve_fighter
+from src.scrapers.bestfightodds import odds_for
 from src.models.train import (EDGE_MIN, MODEL_DIR, REPORT_DIR, am_to_dec, apply_stacker, fair_prob,
                               kelly_stake, mirror, predict_sym)
 
@@ -116,6 +117,7 @@ def main(argv=None) -> int:
     models, cols, version, stacker = bundle["models"], bundle["cols"], bundle["version"], bundle["stacker"]
     con = db.connect(a.db)
     con.execute(PREDICTIONS_DDL)
+    con.execute("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS odds_info VARCHAR")
     data = json.loads(UPCOMING_JSON.read_text())
     up, meta = upcoming_rows(con, data)
 
@@ -129,15 +131,23 @@ def main(argv=None) -> int:
     for i, m in enumerate(meta):
         r = U.iloc[i]
         pm = float(r.p_model)
-        oa, ob = m.get("odds_a"), m.get("odds_b")
+        oi = odds_for(con, m["a"], m["b"])
+        if oi:
+            oa, ob = oi["odds_a"], oi["odds_b"]
+            odds_info = {k: oi[k] for k in ("kind", "n_books", "captured_at", "books", "nl_books", "opening", "history")}
+            odds_info["source"] = "BestFightOdds"
+        else:
+            oa, ob = m.get("odds_a"), m.get("odds_b")
+            odds_info = {"source": "ufcalendar (handmatig)", "kind": "sportsbooks"} if oa is not None else None
         mkt = float(fair_prob(oa, ob)) if oa is not None else None
+        betable = odds_info is not None and odds_info["kind"] == "sportsbooks"
         pf = float(apply_stacker(stacker, [mkt], [pm])[0]) if mkt is not None else pm
         pick, edge, stake = None, None, 0.0
         if mkt is not None:
             ea, eb = pf - mkt, (1 - pf) - (1 - mkt)
             side_a = ea >= eb
             edge = ea if side_a else eb
-            if edge >= EDGE_MIN:
+            if edge >= EDGE_MIN and betable:
                 pp, dd = (pf, am_to_dec(oa)) if side_a else (1 - pf, am_to_dec(ob))
                 stake = float(kelly_stake(pp, float(dd), BANKROLL))
                 pick = m["a"] if side_a else m["b"]
@@ -148,6 +158,8 @@ def main(argv=None) -> int:
         if r.get("d_days_since") is not None and not pd.isna(r.d_days_since) and abs(r.d_days_since) > 365:
             flags.append({"type": "layoff", "fighter": "", "text": "Groot verschil in tijd sinds laatste gevecht"})
         flags.append({"type": "data", "fighter": "", "text": "Stats t/m 8 aug 2026: recentere gevechten ontbreken"})
+        if odds_info and odds_info["kind"] != "sportsbooks":
+            flags.append({"type": "odds", "fighter": "", "text": "Alleen prediction-market-odds (Polymarket): indicatief, geen virtuele inzet"})
         rec = {
             "fight_id": m["fight_id"], "model_version": version, "created_at": now,
             "locked_at": now if a.lock else None, "event_id": m["event"]["id"], "event_date": m["event"]["datum"],
@@ -157,6 +169,7 @@ def main(argv=None) -> int:
             "reasons": json.dumps(explain(models["logreg"], U.iloc[[i]], cols, float(p_lr[i]))),
             "method": json.dumps({"a": method_est(ms, m["a_id"], pf), "b": method_est(ms, m["b_id"], 1 - pf)}),
             "flags": json.dumps(flags),
+            "odds_info": json.dumps(odds_info) if odds_info else None,
         }
         out.append(rec)
         if pick and a.lock:

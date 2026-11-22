@@ -42,13 +42,34 @@ function advice(f) {
   const sideA = ea >= eb, edge = sideA ? ea : eb;
   const dec = amToDec(sideA ? f.odds_a : f.odds_b), pp = sideA ? p : 1 - p;
   const ev = pp * dec - 1;
-  if (edge < S.edge) return { status: "none", edge, sideA, mkt, ev, dec };
+  const pm = (f.odds_info || {}).kind === "prediction market";
+  if (edge < S.edge || pm) return { status: "none", edge, sideA, mkt, ev, dec, pm, pmValue: pm && edge >= S.edge };
   const k = ((dec - 1) * pp - (1 - pp)) / (dec - 1);
   const stake = Math.max(0, Math.min(k * S.kelly, S.maxBet)) * S.bankroll;
   return { status: "bet", edge, sideA, mkt, ev, dec, stake, pick: sideA ? f.a.name : f.b.name };
 }
+/* odds per bookmaker + lijnbeweging */
+function oddsDetail(f, A, B) {
+  const oi = f.odds_info;
+  if (!oi) return "";
+  const src = `<div class="note">Bron: ${esc(oi.source)}${oi.captured_at ? " · gemeten " + esc(oi.captured_at.replace("T", " ")) + " UTC" : ""}${oi.n_books ? ` · mediaan van ${oi.n_books} ${oi.kind === "sportsbooks" ? "bookmaker(s)" : "prediction market"}` : ""}.${oi.kind !== "sportsbooks" ? " <b class=\"warn\">Alleen Polymarket: indicatief, geen virtuele inzet.</b>" : ""}</div>`;
+  const books = Object.entries(oi.books || {});
+  const PM = ["Polymarket", "Kalshi"], real = books.filter(([b]) => !PM.includes(b)), pool = real.length ? real : books;
+  const best = i => Math.max(...pool.map(([, v]) => amToDec(v[i])));
+  const tbl = books.length ? `<table style="margin-top:10px"><tr><th>Bookmaker</th><th class="num">${esc(last(A.name))}</th><th class="num">${esc(last(B.name))}</th></tr>${books.map(([b, v]) => `<tr><td>${esc(b)}${S.books.includes(b) ? ` <span class="tag" title="KSA-vergunning, staat in je instellingen">NL</span>` : ""}</td>${v.map((o, i) => `<td class="num ${amToDec(o) === best(i) && pool.some(([pb]) => pb === b) ? "up" : ""}" ${oddsTitle(o)}>${fmtOdds(o)}</td>`).join("")}</tr>`).join("")}</table>` : "";
+  const h = oi.history || [];
+  let mv = "";
+  if (h.length > 1) {
+    const t0 = Date.parse(h[0].captured_at);
+    const pts = h.map(x => [(Date.parse(x.captured_at) - t0) / 36e5, fairP(x.odds_a, x.odds_b)]);
+    mv = `<h3 style="margin-top:14px">Lijnbeweging (kans ${esc(last(A.name))}, zonder marge)</h3>` + lineChart({ series: [{ pts, color: "#d20a0a" }], h: 150, yfmt: v => pct(v, 0), ylab: 3 }) +
+      `<div class="note">Opening ${fmtOdds(h[0].odds_a)} → nu ${fmtOdds(h[h.length - 1].odds_a)} over ${h.length} metingen.</div>`;
+  } else mv = `<div class="note">Lijnbeweging verschijnt na de volgende odds-meting.</div>`;
+  return src + tbl + mv;
+}
 function adviceTag(f, a = advice(f)) {
   if (a.status === "bet") return `<span class="tag bet">BET ${esc(last(a.pick))} @ ${num(a.dec)}</span>`;
+  if (a.status === "none" && a.pm) return `<span class="tag" title="Alleen Polymarket-odds: indicatief, geen virtuele inzet">${a.pmValue ? "Indicatief +" + pct(a.edge, 0) : "Indicatief"}</span>`;
   if (a.status === "none") return `<span class="tag">Geen value</span>`;
   if (a.status === "wait") return `<span class="tag wait">Wacht op odds</span>`;
   return `<span class="tag">Onbevestigd</span>`;
@@ -310,7 +331,7 @@ function pageMatchup(id) {
       <div class="note">Bijdrage aan de kans van <b class="blue">${esc(last(A.name))}</b> (blauw = in zijn/haar voordeel, rood = in het voordeel van ${esc(last(B.name))}), uit het logistische model.</div></div>
     <div class="card"><h3>Odds & markt</h3>
       ${f.odds_a != null ? `${barChart([{ label: "Model " + last(A.name), value: f.p_model, color: "#2f6bff" }, { label: "Markt " + last(A.name), value: fairP(f.odds_a, f.odds_b), color: "#6b717c" }, { label: "Eind " + last(A.name), value: pa, color: "#4c86ff" }], { yfmt: v => pct(v, 0), h: 180 })}
-      <div class="note">Odds-verloop volgt zodra we odds meerdere keren ophalen (nu één meting, 22 nov).</div>` : `<div class="empty">Nog geen odds voor dit gevecht.<br>Advies volgt zodra de lijn uitkomt.</div>`}</div>
+      ${oddsDetail(f, A, B)}` : `<div class="empty">Nog geen odds voor dit gevecht.<br>Advies volgt zodra de lijn uitkomt.</div>`}</div>
     <div class="card"><h3>Nieuws & kamp</h3>
       ${(f.flags || []).map(x => `<div class="srow"><span class="tag ${x.type === "data" ? "" : "flag"}">${esc(x.type)}</span><span style="flex:1">${x.fighter ? `<b>${esc(x.fighter)}</b>: ` : ""}${esc(x.text)}</span></div>`).join("") || `<div class="empty">Geen vlaggen</div>`}
       <div class="note">Nieuws, trainingskamp en weigh-ins worden nog niet automatisch verzameld (fase 7).</div></div>
@@ -551,7 +572,7 @@ function pageInstellingen() {
   </div>
   <h3 style="margin-top:18px">Bookmakers (alleen met KSA-vergunning)</h3>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${books.map(b => `<label class="toggle"><input type="checkbox" data-book="${b}" ${S.books.includes(b) ? "checked" : ""}> ${b}</label>`).join("")}</div>
-  <div class="note">Nog niet gebruikt: odds komen nu uit één bron. Later vergelijkt het dashboard odds per bookmaker.</div>
+  <div class="note">Odds per bookmaker komen van BestFightOdds; in de matchup-pagina zie je ze naast elkaar. Van deze lijst staat daar nu alleen Unibet tussen.</div>
   <div style="margin-top:18px;display:flex;gap:8px"><button class="btn ghost" id="reset">Standaardwaarden</button><button class="btn ghost" id="clearbets">Bet-log wissen</button></div></div></div>` + disclaimer;
 }
 

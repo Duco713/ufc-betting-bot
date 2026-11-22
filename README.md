@@ -10,6 +10,7 @@ Persoonlijk onderzoeksproject: een statistisch model dat MMA-gevechten voorspelt
 |---|---|---|
 | 1 | `.venv/bin/python -m src.importers.kaggle --download` | Historische data (gevechten, stats per ronde, odds) in `data/ufc.duckdb` |
 | 2 | `.venv/bin/python -m src.models.train` | Point-in-time features + Elo, walk-forward backtest 2016-2026, eindmodel → `reports/backtest.md` |
+| 2b | `.venv/bin/python -m src.scrapers.bestfightodds` | Actuele odds per bookmaker (snapshot met tijdstempel → `odds_snapshots`); draai dit een paar keer per week voor lijnbeweging |
 | 3 | `.venv/bin/python -m src.predict.upcoming` | Voorspellingen voor `data/upcoming/testweekenden.json` (`--lock` om vast te zetten) |
 | 4 | `.venv/bin/python -m src.export.site_data` | Data voor het dashboard → `docs/data/*.json` |
 | 5 | `git add docs && git commit -m "Data update" && git push` | Dashboard bijwerken (GitHub Pages serveert `docs/`) |
@@ -36,7 +37,7 @@ src/export/site_data.py   JSON voor het dashboard
 docs/                     statisch dashboard (GitHub Pages)
 ```
 
-**Bronnen & licenties:** Kaggle `neelagiriaditya/ufc-datasets-1994-2025` (CC0), Kaggle `mdabbert/ultimate-ufc-dataset` (CC BY 4.0), kaarten en odds van ufcalendar.com. Niet gelieerd aan de UFC.
+**Bronnen & licenties:** Kaggle `neelagiriaditya/ufc-datasets-1994-2025` (CC0), Kaggle `mdabbert/ultimate-ufc-dataset` (CC BY 4.0), kaarten van ufcalendar.com, actuele odds van BestFightOdds.com (robots.txt staat dit toe; 1 request per run). Niet gelieerd aan de UFC.
 
 **Verantwoord:** alleen virtuele inzetten. Wedden in Nederland alleen bij aanbieders met een KSA-vergunning, 18+. Hulp: [loketkansspel.nl](https://www.loketkansspel.nl).
 
@@ -101,6 +102,7 @@ Opties: `--delay 1.5` (trager scrapen), `--db pad/naar.duckdb`.
 | `events` | id, naam, datum, locatie, status (`completed`/`upcoming`) |
 | `fights` | id, event, vechter A/B, uitslag, winnaar, klasse, titelgevecht, methode, ronde, tijd, rondeformat, scheidsrechter, bonussen, plek op de kaart |
 | `fight_stats_round` | per gevecht × vechter × ronde (ronde 0 = totaal): KD, sig/total strikes, takedowns, sub-pogingen, reversals, controletijd, hoofd/lichaam/benen, afstand/clinch/grond (telkens landed + attempted) |
+| `odds_snapshots` | per meting × gevecht × bookmaker: moneyline beide vechters (BestFightOdds). Consensus = mediaan van echte bookmakers; alleen Polymarket/Kalshi = indicatief, geen virtuele inzet |
 | `upcoming_fights` | komende gevechten (wordt bij elke `--upcoming` volledig ververst) |
 
 Let op: `fighters.record_*` is het record van **nu** (niet point-in-time); gebruik dat niet als feature (PLAN.md §5).
