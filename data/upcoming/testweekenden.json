@@ -1,0 +1,63 @@
+{
+  "beschrijving": "Testperiode van het model: de komende 3 weekenden (stand 22 nov 2026). Kaarten kunnen nog wijzigen; de scraper (--upcoming) werkt dit bij.",
+  "bronnen": [
+    "https://www.ufcalendar.com/events/ufc-fight-night-2026-12-05",
+    "https://www.ufcalendar.com/events/ufc-335-2026-12-13",
+    "https://www.independent.co.uk/sport/ufc/ufc-schedule-2026-events-fights-november-b3077393.html",
+    "https://www.espn.com/mma/schedule/_/league/ufc"
+  ],
+  "opgehaald_op": "2026-11-22",
+  "odds_notitie": "Amerikaanse odds zoals vermeld op ufcalendar.com op 22-11-2026; null = nog niet bekend.",
+  "weekenden": [
+    {
+      "weekend": "2026-11-28/29",
+      "event": null,
+      "notitie": "Geen UFC-event (Thanksgiving-weekend VS)."
+    },
+    {
+      "weekend": "2026-12-05/06",
+      "event": {
+        "id": "ufc-fn-2026-12-05",
+        "naam": "UFC Fight Night: Adesanya vs. Magomedov",
+        "datum": "2026-12-05",
+        "locatie": "ANB Arena, Riyadh, Saoedi-Arabië",
+        "aanvang_nl": {"prelims": "16:00", "main_card": "19:00"},
+        "fights": [
+          {"kaart": "main", "nr": 1, "a": "Israel Adesanya", "a_record": "24-6-0", "b": "Shara Magomedov", "b_record": "17-1-0", "klasse": "Middleweight", "rondes": 5, "odds_a": -168, "odds_b": 136},
+          {"kaart": "main", "nr": 2, "a": "Ian Machado Garry", "a_record": "17-2-0", "b": "Yaroslav Amosov", "b_record": "30-1-0", "klasse": "Welterweight", "rondes": 3, "odds_a": -186, "odds_b": 151},
+          {"kaart": "main", "nr": 3, "a": "Serghei Spivac", "a_record": "18-7-0", "b": "Mario Pinto", "b_record": "13-0-0", "klasse": "Heavyweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "main", "nr": 4, "a": "Levan Chokheli", "a_record": "15-3-0", "b": "Islam Dulatov", "b_record": "12-1-0", "klasse": "Welterweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "main", "nr": 5, "a": "Mairon Santos", "a_record": "17-1-0", "b": "Akbar Abdullaev", "b_record": "14-0-0", "klasse": "Lightweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "main", "nr": 6, "a": "Magomed Tuchalov", "a_record": "7-0-0", "b": "Ion Cuțelaba", "b_record": "20-12-1", "klasse": "Light Heavyweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "prelims", "nr": 7, "a": "Bruno Silva", "a_record": "15-9-2", "b": "Jafel Filho", "b_record": "17-5-0", "klasse": "Flyweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "prelims", "nr": 8, "a": "Uran Satybaldiev", "a_record": "10-1-0", "b": "Ivan Gnizditskiy", "b_record": "7-0-0", "klasse": "Light Heavyweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "prelims", "nr": 9, "a": "Marco Tulio", "a_record": "14-3-0", "b": "JunYong Park", "b_record": "19-7-0", "klasse": "Middleweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "prelims", "nr": 10, "a": "Pavel Andrusca", "a_record": "9-0-0", "b": "Mehemmedeli Osmanli", "b_record": "12-2-0", "klasse": "Bantamweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "prelims", "nr": 11, "a": "Modestino Rodrigues", "a_record": "8-1-0", "b": "Matthieu Duclos", "b_record": "11-3-0", "klasse": "Middleweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "prelims", "nr": 12, "a": "Abdul Hussein", "a_record": "16-2-0", "b": "Hecher Sosa", "b_record": "15-1-0", "klasse": "Bantamweight", "rondes": 3, "odds_a": null, "odds_b": null}
+        ]
+      }
+    },
+    {
+      "weekend": "2026-12-12/13",
+      "event": {
+        "id": "ufc-335",
+        "naam": "UFC 335: Oliveira vs. Lopes",
+        "datum": "2026-12-12",
+        "locatie": "T-Mobile Arena, Las Vegas, VS",
+        "aanvang_nl": {"main_card": "03:00 (zondag 13 dec)"},
+        "notitie": "Kaart nog niet compleet (7 bevestigde gevechten). Joe Pyfer vs. Bo Nickal wordt door The Independent genoemd maar staat niet op ufcalendar; behandeld als onbevestigd.",
+        "fights": [
+          {"kaart": "main", "nr": 1, "a": "Charles Oliveira", "a_record": "37-11-0", "b": "Diego Lopes", "b_record": "28-8-0", "klasse": "Lightweight (BMF-titel)", "rondes": 5, "odds_a": -152, "odds_b": 123},
+          {"kaart": "main", "nr": 2, "a": "Sergei Pavlovich", "a_record": "21-3-0", "b": "Alex Pereira", "b_record": "13-4-0", "klasse": "Heavyweight", "rondes": 5, "odds_a": -201, "odds_b": 164},
+          {"kaart": "main", "nr": 3, "a": "Brandon Moreno", "a_record": "24-10-2", "b": "Charles Johnson", "b_record": "20-9-0", "klasse": "Flyweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "main", "nr": 4, "a": "Kyler Phillips", "a_record": "12-5-0", "b": "Ethyn Ewing", "b_record": "10-2-0", "klasse": "Bantamweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "main", "nr": 5, "a": "Damian Pinas", "a_record": "11-1-0", "b": "Baisangur Susurkaev", "b_record": "12-0-0", "klasse": "Middleweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "main", "nr": 6, "a": "Maycee Barber", "a_record": "15-3-0", "b": "Carli Judice", "b_record": "7-2-0", "klasse": "Women's Flyweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "prelims", "nr": 7, "a": "Quentin Pasley", "a_record": "4-0-0", "b": "Junior Tafa", "b_record": "7-6-0", "klasse": "Light Heavyweight", "rondes": 3, "odds_a": null, "odds_b": null},
+          {"kaart": "onbevestigd", "nr": 8, "a": "Joe Pyfer", "a_record": null, "b": "Bo Nickal", "b_record": null, "klasse": "Middleweight", "rondes": 3, "odds_a": null, "odds_b": null}
+        ]
+      }
+    }
+  ]
+}

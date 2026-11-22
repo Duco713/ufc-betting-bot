@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fight Model Dashboard</title>
+<style>
+:root{
+  --bg:#0d0f13; --panel:#151922; --panel2:#1b2030; --line:#262c3b;
+  --text:#e8ebf2; --muted:#8a93a6; --accent:#e5484d; --accent2:#3b82f6;
+  --good:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+  --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);background:#10131a;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.logo{font-weight:800;letter-spacing:.5px;font-size:16px}
+.logo span{color:var(--accent)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:1px solid transparent;color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer;font:inherit}
+nav button.active{background:var(--panel2);color:var(--text);border-color:var(--line)}
+.right{margin-left:auto;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}
+.pill{border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.mock{background:#3a2a0a;color:#fbbf24;border-color:#5a4210}
+main{padding:24px;max-width:1280px;margin:0 auto}
+.view{display:none}.view.active{display:block}
+h2{font-size:18px;margin:0 0 14px}
+h3{font-size:13px;margin:0 0 10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.kpi .v{font-size:24px;font-weight:700;margin-top:4px}
+.kpi .s{font-size:12px;color:var(--muted)}
+.up{color:var(--good)}.down{color:var(--bad)}
+.two{grid-template-columns:2fr 1fr}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:600}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--panel2)}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{white-space:nowrap}
+#eventlist table{min-width:980px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-right:4px}
+.tag.bet{background:#0f2e1b;color:var(--good);border-color:#1d5a34}
+.tag.nobet{color:var(--muted)}
+.tag.wait{color:var(--warn);border-color:#5a4210}
+.tag.flag{color:var(--warn);border-color:#5a4210}
+.tag.five{color:#c4b5fd;border-color:#4c3d8a}
+.prob{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--panel2);width:140px}
+.prob i{display:block;background:var(--accent2)}
+.prob b{display:block;background:var(--accent)}
+.fighter{font-weight:600}
+.rec{color:var(--muted);font-size:12px}
+.event-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.event-head .meta{color:var(--muted);font-size:13px}
+.section-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:14px 10px 6px}
+.empty{color:var(--muted);text-align:center;padding:28px;border:1px dashed var(--line);border-radius:var(--radius)}
+.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filters .pill{cursor:pointer}
+.filters .pill.on{background:var(--panel2);color:var(--text)}
+/* matchup */
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;text-align:center}
+.vs .name{font-size:22px;font-weight:800}
+.vs .p{font-size:34px;font-weight:800}
+.vs .a{color:var(--accent2)}.vs .b{color:var(--accent)}
+.tape td{text-align:center}.tape td:nth-child(2){color:var(--muted);font-size:12px;text-transform:uppercase}
+.bar{display:grid;grid-template-columns:32px 1fr 1fr 32px;grid-template-areas:"lab lab lab lab" "vl l r vr";align-items:center;gap:4px 6px;margin:10px 0;font-size:13px}
+.bar .lab{grid-area:lab}.bar .vl{grid-area:vl}.bar .l{grid-area:l}.bar .r{grid-area:r}.bar .vr{grid-area:vr}
+.bar .l,.bar .r{height:8px;background:var(--panel2);border-radius:4px;position:relative}
+.bar .l i{position:absolute;right:0;top:0;bottom:0;background:var(--accent2);border-radius:4px}
+.bar .r i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px}
+.bar .lab{text-align:center;color:var(--muted);font-size:12px}
+.bar .vl{text-align:right}.bar .vr{text-align:left}
+.reason{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.reason:last-child{border:none}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.three{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.three{grid-template-columns:1fr}}
+.method{display:flex;height:28px;border-radius:6px;overflow:hidden;font-size:11px;font-weight:600}
+.method div{display:flex;align-items:center;justify-content:center;color:#fff}
+.camp li{margin:6px 0}
+.wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">FIGHT<span>MODEL</span></div>
+  <nav>
+    <button class="active" data-v="overzicht">Overzicht</button>
+    <button data-v="events">Komende events</button>
+    <button data-v="matchup">Matchup-detail</button>
+    <button data-v="prestaties">Prestaties</button>
+  </nav>
+  <div class="right">
+    <span class="pill mock">MOCKUP · voorbeeldcijfers</span>
+    <span class="pill">Model v0.1 · paper trading</span>
+  </div>
+</header>
+
+<main>
+<!-- ================= OVERZICHT ================= -->
+<section class="view active" id="overzicht">
+  <div class="grid kpis">
+    <div class="card kpi"><h3>Bankroll (virtueel)</h3><div class="v">€1.000</div><div class="s">start testperiode</div></div>
+    <div class="card kpi"><h3>Bets geplaatst</h3><div class="v">0</div><div class="s">2 klaar voor 5 dec</div></div>
+    <div class="card kpi"><h3>ROI</h3><div class="v">–</div><div class="s">na eerste event</div></div>
+    <div class="card kpi"><h3>Gem. CLV</h3><div class="v">–</div><div class="s">belangrijkste maatstaf</div></div>
+    <div class="card kpi"><h3>Log-loss model / markt</h3><div class="v">0.641 <span class="s">/ 0.628</span></div><div class="s down">backtest 2023–26: markt nog beter</div></div>
+    <div class="card kpi"><h3>Brier-score</h3><div class="v">0.224</div><div class="s">backtest · lager = beter</div></div>
+  </div>
+
+  <div class="grid two" style="margin-top:16px">
+    <div class="card">
+      <h3>Bankroll-curve · backtest 2023–2026 (¼ Kelly)</h3>
+      <svg viewBox="0 0 640 220" width="100%" role="img" aria-label="Bankroll curve">
+        <g stroke="#262c3b"><line x1="40" y1="20" x2="630" y2="20"/><line x1="40" y1="80" x2="630" y2="80"/><line x1="40" y1="140" x2="630" y2="140"/><line x1="40" y1="200" x2="630" y2="200"/></g>
+        <g fill="#8a93a6" font-size="11"><text x="0" y="24">€1.300</text><text x="0" y="84">€1.100</text><text x="4" y="144">€900</text><text x="4" y="204">€700</text>
+        <text x="40" y="216">2023</text><text x="230" y="216">2024</text><text x="420" y="216">2025</text><text x="600" y="216">2026</text></g>
+        <path d="M40,110 L80,104 L120,118 L160,96 L200,90 L240,130 L280,146 L320,122 L360,104 L400,92 L440,72 L480,84 L520,66 L560,58 L600,70 L630,62 L630,200 L40,200Z" fill="rgba(59,130,246,.12)"/>
+        <polyline fill="none" stroke="#3b82f6" stroke-width="2.5" points="40,110 80,104 120,118 160,96 200,90 240,130 280,146 320,122 360,104 400,92 440,72 480,84 520,66 560,58 600,70 630,62"/>
+        <rect x="200" y="20" width="80" height="180" fill="rgba(239,68,68,.07)"/>
+        <text x="206" y="36" fill="#ef4444" font-size="11">max drawdown −19%</text>
+      </svg>
+      <p class="note">Voorbeeldcurve. De echte curve komt uit de walk-forward-backtest (fase 6).</p>
+    </div>
+    <div class="card">
+      <h3>Volgend event</h3>
+      <div style="font-size:17px;font-weight:700">Adesanya vs. Magomedov</div>
+      <div class="rec">za 5 dec · Riyadh · main card 19:00 NL</div>
+      <div style="font-size:30px;font-weight:800;margin:14px 0" id="countdown">13d 00u</div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div><div class="rec">Gevechten</div><b>12</b></div>
+        <div><div class="rec">Met odds</div><b>2</b></div>
+        <div><div class="rec">Value bets</div><b class="up">1</b></div>
+        <div><div class="rec">Vlaggen</div><b style="color:var(--warn)">2</b></div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+      <h3>Testweekenden</h3>
+      <div class="rec">28–29 nov · geen event</div>
+      <div class="rec">5 dec · UFC FN Riyadh · 12 gevechten</div>
+      <div class="rec">12 dec · UFC 335 · 7 (+1 onbevestigd)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= EVENTS ================= -->
+<section class="view" id="events">
+  <div class="filters">
+    <span class="pill on">Alle gevechten</span><span class="pill">Alleen value bets</span><span class="pill">Met vlaggen</span>
+  </div>
+  <div id="eventlist"></div>
+</section>
+
+<!-- ================= MATCHUP ================= -->
+<section class="view" id="matchup">
+  <div class="card">
+    <div class="rec" style="text-align:center;margin-bottom:8px">UFC Fight Night · 5 dec · Middleweight · 5 rondes · main event</div>
+    <div class="vs">
+      <div><div class="name a">Israel Adesanya</div><div class="rec">24-6-0 · Elo 1612</div><div class="p a">54%</div><div class="rec">markt 59,7% · odds 1.60</div></div>
+      <div style="color:var(--muted);font-weight:800">VS</div>
+      <div><div class="name b">Shara Magomedov</div><div class="rec">17-1-0 · Elo 1588</div><div class="p b">46%</div><div class="rec">markt 40,3% · odds 2.36</div></div>
+    </div>
+    <div style="text-align:center;margin-top:12px"><span class="tag bet">VALUE: Magomedov · edge +5,7% · EV +8,6% · inzet €16 (¼ Kelly)</span></div>
+  </div>
+
+  <div class="grid three" style="margin-top:16px">
+    <div class="card">
+      <h3>Tale of the tape</h3>
+      <table class="tape">
+        <tr><td>193 cm</td><td>Lengte</td><td>188 cm</td></tr>
+        <tr><td>203 cm</td><td>Reach</td><td>191 cm</td></tr>
+        <tr><td>37</td><td>Leeftijd</td><td>32</td></tr>
+        <tr><td>Switch</td><td>Stance</td><td>Orthodox</td></tr>
+        <tr><td>14 mnd</td><td>Laatste gevecht</td><td>5 mnd</td></tr>
+        <tr><td>L-L-W-L-L</td><td>Laatste 5</td><td>W-W-L-W-W</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Stijl (per 15 min)</h3>
+      <div id="bars"></div>
+      <div class="legend"><span><i style="background:var(--accent2)"></i>Adesanya</span><span><i style="background:var(--accent)"></i>Magomedov</span></div>
+    </div>
+    <div class="card">
+      <h3>Waarom dit model-oordeel?</h3>
+      <div class="reason"><span>Leeftijd 37 + 5-ronde gevecht</span><b class="down">−4,1%</b></div>
+      <div class="reason"><span>Verliesreeks / KO-verliezen recent</span><b class="down">−3,2%</b></div>
+      <div class="reason"><span>Reach-voordeel +12 cm</span><b class="up">+2,4%</b></div>
+      <div class="reason"><span>Kwaliteit tegenstanders (Elo)</span><b class="up">+2,0%</b></div>
+      <div class="reason"><span>Takedown-dreiging laag bij beiden</span><b>±0</b></div>
+      <p class="note">SHAP-bijdrage aan de kans van Adesanya t.o.v. het gemiddelde.</p>
+    </div>
+  </div>
+
+  <div class="grid three" style="margin-top:16px">
+    <div class="card">
+      <h3>Methode van winst</h3>
+      <div class="method">
+        <div style="width:22%;background:#2f6fd6">KO 22%</div><div style="width:4%;background:#1e4fa0"></div><div style="width:28%;background:#5b8be0">DEC 28%</div>
+        <div style="width:30%;background:#c43a3f">KO 30%</div><div style="width:2%;background:#8f2a2e"></div><div style="width:14%;background:#e0767a">DEC</div>
+      </div>
+      <p class="note">Links Adesanya (KO / sub / beslissing), rechts Magomedov. Kans op de afstand (beslissing): 42%.</p>
+    </div>
+    <div class="card">
+      <h3>Odds-beweging Magomedov</h3>
+      <svg viewBox="0 0 300 110" width="100%">
+        <line x1="10" y1="100" x2="290" y2="100" stroke="#262c3b"/>
+        <polyline fill="none" stroke="#e5484d" stroke-width="2.5" points="10,30 60,38 110,44 160,52 210,58 260,62 290,66"/>
+        <g fill="#8a93a6" font-size="10"><text x="10" y="22">+165 opening</text><text x="226" y="82">+136 nu</text></g>
+      </svg>
+      <p class="note">Geld komt binnen op Magomedov: de markt beweegt richting het model.</p>
+    </div>
+    <div class="card">
+      <h3>Kamp & fight week</h3>
+      <ul class="camp" style="padding-left:18px;margin:0">
+        <li><span class="tag">kamp</span>City Kickboxing, geen wissel</li>
+        <li><span class="tag flag">layoff</span>14 maanden sinds laatste gevecht</li>
+        <li><span class="tag">kamp</span>Magomedov: normaal kamp, geen blessures gemeld</li>
+        <li><span class="tag">weigh-in</span>nog niet bekend (vr 4 dec)</li>
+      </ul>
+      <p class="note">Elk item met bron-URL; vlaggen tellen alleen mee na validatie.</p>
+    </div>
+  </div>
+  <p class="note">Alle cijfers op deze pagina zijn voorbeeldwaarden voor de mockup, behalve records en odds.</p>
+</section>
+
+<!-- ================= PRESTATIES ================= -->
+<section class="view" id="prestaties">
+  <div class="grid two">
+    <div class="card">
+      <h3>Kalibratie · backtest</h3>
+      <svg viewBox="0 0 360 300" width="100%" role="img" aria-label="Kalibratiegrafiek">
+        <g stroke="#262c3b"><line x1="40" y1="260" x2="340" y2="260"/><line x1="40" y1="20" x2="40" y2="260"/></g>
+        <line x1="40" y1="260" x2="340" y2="20" stroke="#8a93a6" stroke-dasharray="4 4"/>
+        <polyline fill="none" stroke="#3b82f6" stroke-width="2.5" points="70,248 100,226 130,196 160,170 190,150 220,118 250,100 280,70 310,52"/>
+        <g fill="#3b82f6"><circle cx="70" cy="248" r="4"/><circle cx="100" cy="226" r="4"/><circle cx="130" cy="196" r="4"/><circle cx="160" cy="170" r="4"/><circle cx="190" cy="150" r="4"/><circle cx="220" cy="118" r="4"/><circle cx="250" cy="100" r="4"/><circle cx="280" cy="70" r="4"/><circle cx="310" cy="52" r="4"/></g>
+        <g fill="#8a93a6" font-size="11"><text x="150" y="290">voorspelde kans</text><text x="40" y="276">10%</text><text x="315" y="276">90%</text>
+        <text transform="translate(14,180) rotate(-90)">werkelijke winst%</text></g>
+      </svg>
+      <p class="note">Op de stippellijn = perfect gekalibreerd. Onder de lijn = model te zeker.</p>
+    </div>
+    <div class="card">
+      <h3>Per segment · backtest</h3>
+      <table>
+        <tr><th>Segment</th><th class="num">Bets</th><th class="num">ROI</th><th class="num">CLV</th></tr>
+        <tr><td>Favorieten</td><td class="num">212</td><td class="num down">−2,1%</td><td class="num">+0,4%</td></tr>
+        <tr><td>Underdogs</td><td class="num">174</td><td class="num up">+4,8%</td><td class="num up">+1,9%</td></tr>
+        <tr><td>5 rondes</td><td class="num">41</td><td class="num up">+6,0%</td><td class="num up">+2,3%</td></tr>
+        <tr><td>Zwaargewicht</td><td class="num">38</td><td class="num down">−8,4%</td><td class="num down">−1,2%</td></tr>
+        <tr><td>Vrouwen</td><td class="num">57</td><td class="num up">+1,1%</td><td class="num">+0,2%</td></tr>
+      </table>
+      <p class="note">Voorbeeldcijfers. Segmenten met &lt;100 bets zijn niet significant.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Bet-log · testperiode</h3>
+    <div class="wrap"><table>
+      <tr><th>Datum</th><th>Gevecht</th><th>Pick</th><th class="num">Odds bij bet</th><th class="num">Slotodds</th><th class="num">CLV</th><th class="num">Inzet</th><th>Uitslag</th><th class="num">W/V</th></tr>
+      <tr><td>5 dec</td><td>Adesanya vs. Magomedov</td><td>Magomedov</td><td class="num">2.36</td><td class="num">–</td><td class="num">–</td><td class="num">€16</td><td><span class="tag wait">open</span></td><td class="num">–</td></tr>
+      <tr><td>12 dec</td><td>Oliveira vs. Lopes</td><td>Lopes</td><td class="num">2.23</td><td class="num">–</td><td class="num">–</td><td class="num">€14</td><td><span class="tag wait">open</span></td><td class="num">–</td></tr>
+    </table></div>
+  </div>
+</section>
+</main>
+
+<script>
+// Nav
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===b.dataset.v));
+});
+
+// Odds helpers
+const dec=o=>o==null?null:(o>0?1+o/100:1+100/-o);
+function fair(a,b){const pa=1/dec(a),pb=1/dec(b);return [pa/(pa+pb),pb/(pa+pb)]}
+
+// Events (records + odds: ufcalendar.com, 22-11-2026; model% = voorbeeld)
+const events=[
+ {naam:'UFC Fight Night: Adesanya vs. Magomedov',meta:'za 5 dec 2026 · ANB Arena, Riyadh · prelims 16:00 / main card 19:00 NL',fights:[
+  ['main','Israel Adesanya','24-6-0','Shara Magomedov','17-1-0','MW',5,-168,136,.54,['layoff 14 mnd']],
+  ['main','Ian Machado Garry','17-2-0','Yaroslav Amosov','30-1-0','WW',3,-186,151,.60,[]],
+  ['main','Serghei Spivac','18-7-0','Mario Pinto','13-0-0','HW',3,null,null,.41,[]],
+  ['main','Levan Chokheli','15-3-0','Islam Dulatov','12-1-0','WW',3,null,null,.44,[]],
+  ['main','Mairon Santos','17-1-0','Akbar Abdullaev','14-0-0','LW',3,null,null,.48,[]],
+  ['main','Magomed Tuchalov','7-0-0','Ion Cuțelaba','20-12-1','LHW',3,null,null,.63,[]],
+  ['prelims','Bruno Silva','15-9-2','Jafel Filho','17-5-0','FLW',3,null,null,.39,[]],
+  ['prelims','Uran Satybaldiev','10-1-0','Ivan Gnizditskiy','7-0-0','LHW',3,null,null,.52,[]],
+  ['prelims','Marco Tulio','14-3-0','JunYong Park','19-7-0','MW',3,null,null,.55,[]],
+  ['prelims','Pavel Andrusca','9-0-0','Mehemmedeli Osmanli','12-2-0','BW',3,null,null,.58,[]],
+  ['prelims','Modestino Rodrigues','8-1-0','Matthieu Duclos','11-3-0','MW',3,null,null,.47,['korte termijn?']],
+  ['prelims','Abdul Hussein','16-2-0','Hecher Sosa','15-1-0','BW',3,null,null,.45,[]],
+ ]},
+ {naam:'UFC 335: Oliveira vs. Lopes',meta:'za 12 dec 2026 · T-Mobile Arena, Las Vegas · main card zo 03:00 NL · kaart nog niet compleet',fights:[
+  ['main','Charles Oliveira','37-11-0','Diego Lopes','28-8-0','LW · BMF',5,-152,123,.52,[]],
+  ['main','Sergei Pavlovich','21-3-0','Alex Pereira','13-4-0','HW',5,-201,164,.66,[]],
+  ['main','Brandon Moreno','24-10-2','Charles Johnson','20-9-0','FLW',3,null,null,.61,[]],
+  ['main','Kyler Phillips','12-5-0','Ethyn Ewing','10-2-0','BW',3,null,null,.57,[]],
+  ['main','Damian Pinas','11-1-0','Baisangur Susurkaev','12-0-0','MW',3,null,null,.43,[]],
+  ['main','Maycee Barber','15-3-0','Carli Judice','7-2-0','W-FLW',3,null,null,.64,[]],
+  ['prelims','Quentin Pasley','4-0-0','Junior Tafa','7-6-0','LHW',3,null,null,.57,[]],
+  ['onbevestigd','Joe Pyfer','','Bo Nickal','','MW',3,null,null,null,[]],
+ ]}
+];
+const BANK=1000,EDGE_MIN=.03;
+function row(f){
+  const [kaart,a,ar,b,br,kl,r,oa,ob,pm,flags]=f;
+  let mkt='<span class="rec">geen odds</span>',edge='–',adv='<span class="tag wait">wacht op odds</span>',stake='–';
+  if(pm==null){adv='<span class="tag nobet">onbevestigd</span>'}
+  if(oa!=null){
+    const [fa,fb]=fair(oa,ob);
+    mkt=`${(fa*100).toFixed(1)}% / ${(fb*100).toFixed(1)}%`;
+    const ea=pm-fa,eb=(1-pm)-fb;
+    const side=ea>eb?{n:a,p:pm,d:dec(oa),e:ea}:{n:b,p:1-pm,d:dec(ob),e:eb};
+    edge=`<span class="${side.e>0?'up':'down'}">${side.e>0?'+':''}${(side.e*100).toFixed(1)}%</span> <span class="rec">${side.n.split(' ').pop()}</span>`;
+    if(side.e>=EDGE_MIN){const bb=side.d-1,k=(bb*side.p-(1-side.p))/bb;stake='€'+Math.round(BANK*k/4);adv=`<span class="tag bet">BET ${side.n.split(' ').pop()} @ ${side.d.toFixed(2)}</span>`}
+    else adv='<span class="tag nobet">geen value</span>';
+  }
+  const bar=pm==null?'':`<div class="prob"><i style="width:${pm*100}%"></i><b style="width:${(1-pm)*100}%"></b></div><div class="rec">${Math.round(pm*100)}% – ${Math.round((1-pm)*100)}%</div>`;
+  const tags=(r===5?'<span class="tag five">5 rd</span>':'')+flags.map(x=>`<span class="tag flag">⚠ ${x}</span>`).join('');
+  return `<tr class="click" onclick="document.querySelector('[data-v=matchup]').click()">
+   <td><div class="fighter">${a}</div><div class="rec">${ar}</div></td>
+   <td><div class="fighter">${b}</div><div class="rec">${br}</div></td>
+   <td>${kl}</td><td>${bar}</td><td class="num">${mkt}</td><td class="num">${edge}</td><td>${adv}</td><td class="num">${stake}</td><td>${tags}</td></tr>`;
+}
+const head='<tr><th>Vechter A</th><th>Vechter B</th><th>Klasse</th><th>Model (vb.)</th><th class="num">Markt</th><th class="num">Edge</th><th>Advies</th><th class="num">Inzet</th><th>Info</th></tr>';
+let html=`<div class="card" style="margin-bottom:16px"><div class="event-head"><div><h2 style="margin:0">Weekend 28–29 nov</h2><div class="meta">Geen UFC-event</div></div></div><div class="empty">Geen gevechten dit weekend: tijd om de pijplijn te testen op het event van 21 nov.</div></div>`;
+for(const e of events){
+  let rows='',last='';
+  for(const f of e.fights){if(f[0]!==last){rows+=`<tr><td colspan="9" class="section-label">${f[0]==='main'?'Main card':f[0]==='prelims'?'Prelims':'Onbevestigd'}</td></tr>`;last=f[0]}rows+=row(f)}
+  html+=`<div class="card" style="margin-bottom:16px"><div class="event-head"><div><h2 style="margin:0">${e.naam}</h2><div class="meta">${e.meta}</div></div><span class="pill">${e.fights.length} gevechten</span></div><div class="wrap"><table>${head}${rows}</table></div></div>`;
+}
+document.getElementById('eventlist').innerHTML=html+'<p class="note">Records en odds: ufcalendar.com (22-11-2026). Model-kansen zijn voorbeeldwaarden; markt = kans zonder bookmakermarge. Advies bij edge ≥ 3%, inzet ¼ Kelly op €1.000.</p>';
+
+// Style bars (voorbeeld)
+const stats=[['Sig. strikes landed/min',3.9,4.6,7],['Strike-verdediging %',58,55,100],['Takedowns /15 min',0.1,0.3,3],['TD-verdediging %',78,85,100],['Knockdowns /15 min',0.4,0.9,1.5],['Output R3 vs R1 %',92,81,120]];
+document.getElementById('bars').innerHTML=stats.map(([l,a,b,m])=>`<div class="bar"><span class="vl">${a}</span><div class="l"><i style="width:${a/m*100}%"></i></div><span class="lab">${l}</span><div class="r"><i style="width:${b/m*100}%"></i></div><span class="vr">${b}</span></div>`).join('');
+
+// Countdown naar 5 dec 19:00 NL
+function cd(){const t=new Date('2026-12-05T19:00:00+01:00')-new Date();if(t<0)return;const d=Math.floor(t/864e5),h=Math.floor(t%864e5/36e5);document.getElementById('countdown').textContent=`${d}d ${String(h).padStart(2,'0')}u`}
+cd();
+</script>
+</body>
+</html>
