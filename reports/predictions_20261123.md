@@ -1,4 +1,4 @@
-# Voorspellingen (v0.1-20261122, 2026-11-23 10:30)
+# Voorspellingen (v0.1-20261122, 2026-11-23 12:49)
 
 | Datum | Gevecht | Kans A / B | Markt A | Edge | Advies | Inzet € |
 |---|---|---|---|---|---|---|
@@ -14,6 +14,8 @@
 | 2026-12-05 | Pavel Andrusca vs Mehemmedeli Osmanli | 50.0% / 50.0% |  |  | wacht op odds | 0 |
 | 2026-12-05 | Modestino Rodrigues vs Matthieu Duclos | 43.0% / 57.0% | 43.1% | +0.1% | geen value | 0 |
 | 2026-12-05 | Abdul Hussein vs Hecher Sosa | 59.6% / 40.4% | 59.2% | +0.4% | geen value | 0 |
+| 2026-12-05 | Gabriel Santos vs Luke Riley | 41.8% / 58.2% | 43.1% | +1.3% | geen value | 0 |
+| 2026-12-05 | Elves Brener vs Mateusz Rebecki | 43.6% / 56.4% |  |  | wacht op odds | 0 |
 | 2026-12-12 | Charles Oliveira vs Diego Lopes | 58.8% / 41.2% | 57.5% | +1.2% | geen value | 0 |
 | 2026-12-12 | Sergei Pavlovich vs Alex Pereira | 66.4% / 33.6% | 63.4% | +3.0% | geen value | 0 |
 | 2026-12-12 | Brandon Moreno vs Charles Johnson | 73.7% / 26.3% |  |  | wacht op odds | 0 |
