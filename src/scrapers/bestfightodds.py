@@ -165,12 +165,13 @@ def odds_for(con, name_a: str, name_b: str) -> dict | None:
     for ts, g in d.groupby("captured_at"):
         c = _consensus(list(zip(g.book, g.oa, g.ob)))
         if c:
-            hist.append({"captured_at": ts.isoformat(timespec="minutes"), "odds_a": c["odds_a"], "odds_b": c["odds_b"]})
+            hist.append({"captured_at": ts.isoformat(timespec="minutes"), "odds_a": c["odds_a"], "odds_b": c["odds_b"], "kind": c["kind"]})
     last_ts = d.captured_at.max()
     g = d[d.captured_at == last_ts]
     cons = _consensus(list(zip(g.book, g.oa, g.ob)))
     if not cons:
         return None
+    hist = [h for h in hist if h["kind"] == cons["kind"]]  # geen Polymarket->bookmaker 'beweging'
     books = {b: [int(a), int(b_)] for b, a, b_ in zip(g.book, g.oa, g.ob)}
     nl = {b: v for b, v in books.items() if b in NL_BOOKS}
     return {**cons, "captured_at": last_ts.isoformat(timespec="minutes"), "books": books, "nl_books": nl,

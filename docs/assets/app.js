@@ -43,7 +43,7 @@ function advice(f) {
   const dec = amToDec(sideA ? f.odds_a : f.odds_b), pp = sideA ? p : 1 - p;
   const ev = pp * dec - 1;
   const pm = (f.odds_info || {}).kind === "prediction market";
-  if (edge < S.edge || pm) return { status: "none", edge, sideA, mkt, ev, dec, pm, pmValue: pm && edge >= S.edge };
+  if (edge < S.edge || pm || ev <= 0) return { status: "none", edge, sideA, mkt, ev, dec, pm, pmValue: pm && edge >= S.edge };
   const k = ((dec - 1) * pp - (1 - pp)) / (dec - 1);
   const stake = Math.max(0, Math.min(k * S.kelly, S.maxBet)) * S.bankroll;
   return { status: "bet", edge, sideA, mkt, ev, dec, stake, pick: sideA ? f.a.name : f.b.name };

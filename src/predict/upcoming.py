@@ -150,7 +150,7 @@ def main(argv=None) -> int:
             if edge >= EDGE_MIN and betable:
                 pp, dd = (pf, am_to_dec(oa)) if side_a else (1 - pf, am_to_dec(ob))
                 stake = float(kelly_stake(pp, float(dd), BANKROLL))
-                pick = m["a"] if side_a else m["b"]
+                pick = (m["a"] if side_a else m["b"]) if stake > 0 else None  # edge > 0 maar EV < 0 door marge
         flags = []
         for side, nm in (("a", m["a"]), ("b", m["b"])):
             if r[f"{side}_debut"] == 1:

@@ -1,10 +1,10 @@
-# Voorspellingen (v0.1-20261122, 2026-11-23 10:28)
+# Voorspellingen (v0.1-20261122, 2026-11-23 10:30)
 
 | Datum | Gevecht | Kans A / B | Markt A | Edge | Advies | Inzet € |
 |---|---|---|---|---|---|---|
 | 2026-12-05 | Israel Adesanya vs Shara Magomedov | 60.0% / 40.0% | 59.0% | +1.0% | geen value | 0 |
 | 2026-12-05 | Ian Machado Garry vs Yaroslav Amosov | 63.8% / 36.2% | 62.0% | +1.8% | geen value | 0 |
-| 2026-12-05 | Serghei Spivac vs Mario Pinto | 23.3% / 76.7% | 26.9% | +3.6% | Mario Pinto | 0 |
+| 2026-12-05 | Serghei Spivac vs Mario Pinto | 23.3% / 76.7% | 26.9% | +3.6% | geen value | 0 |
 | 2026-12-05 | Levan Chokheli vs Islam Dulatov | 30.5% / 69.5% | 32.6% | +2.1% | geen value | 0 |
 | 2026-12-05 | Mairon Santos vs Akbar Abdullaev | 30.0% / 70.0% | 29.7% | +0.3% | geen value | 0 |
 | 2026-12-05 | Magomed Tuchalov vs Ion Cuțelaba | 38.4% / 61.6% | 38.0% | +0.4% | geen value | 0 |

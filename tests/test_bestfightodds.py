@@ -34,3 +34,16 @@ def test_consensus_prefers_sportsbooks():
 def test_odds_roundtrip():
     for o in (-1150, -200, -101, 100, 125, 376):
         assert abs(dec_to_am(am_to_dec(o)) - o) <= 1
+
+
+def test_history_only_same_kind(tmp_path):
+    from datetime import datetime
+    from src import db
+    from src.scrapers.bestfightodds import odds_for, store
+    con = db.connect(str(tmp_path / "t.duckdb"))
+    ev = lambda odds: [{"name": "E", "url": None, "fights": [{"matchup_id": "1", "f1": "A B", "f2": "C D", "odds": odds}]}]
+    store(con, ev({"Polymarket": (1150, -1150)}), datetime(2026, 11, 22))
+    store(con, ev({"Polymarket": (285, -317), "Caesars": (250, -350)}), datetime(2026, 11, 23))
+    o = odds_for(con, "C D", "A B")
+    assert o["kind"] == "sportsbooks" and (o["odds_a"], o["odds_b"]) == (-350, 250)
+    assert len(o["history"]) == 1 and o["opening"]["odds_a"] == -350
