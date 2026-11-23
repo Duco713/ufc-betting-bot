@@ -2,7 +2,7 @@
 # Odds ophalen -> voorspellingen -> dashboard-data -> push naar GitHub Pages.
 # Draait automatisch via een geplande taak in de Claude-app (zie README, "Automatisch verversen").
 set -euo pipefail
-export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
+export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 cd "$(dirname "$0")/.."
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') ==="
 PY=.venv/bin/python
