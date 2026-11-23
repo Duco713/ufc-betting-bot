@@ -174,27 +174,27 @@
             "kaart": "prelims",
             "nr": 13,
             "a": "Gabriel Santos",
-            "a_record": null,
+            "a_record": "12-2-0",
             "b": "Luke Riley",
-            "b_record": null,
+            "b_record": "14-0-0",
             "klasse": "Featherweight",
             "rondes": 3,
             "odds_a": null,
             "odds_b": null,
-            "bron": "BestFightOdds (23-11-2026), nog niet op ufcalendar.com"
+            "bron": "Kaart: BestFightOdds (23-11-2026); records: ESPN (Santos, Riley), agentmma.com (Brener, Rebecki)"
           },
           {
             "kaart": "prelims",
             "nr": 14,
             "a": "Elves Brener",
-            "a_record": null,
+            "a_record": "17-6-0",
             "b": "Mateusz Rebecki",
-            "b_record": null,
+            "b_record": "21-5-0",
             "klasse": "Lightweight",
             "rondes": 3,
             "odds_a": null,
             "odds_b": null,
-            "bron": "BestFightOdds (23-11-2026), nog niet op ufcalendar.com"
+            "bron": "Kaart: BestFightOdds (23-11-2026); records: ESPN (Santos, Riley), agentmma.com (Brener, Rebecki)"
           }
         ]
       }
