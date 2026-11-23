@@ -11,3 +11,4 @@ reports/*.csv
 reports_train.log
 .claude/
 .DS_Store
+logs/
