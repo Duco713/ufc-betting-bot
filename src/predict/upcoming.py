@@ -23,6 +23,7 @@ from src.models.train import (EDGE_MIN, MODEL_DIR, REPORT_DIR, am_to_dec, apply_
 
 UPCOMING_JSON = db.ROOT / "data" / "upcoming" / "testweekenden.json"
 BANKROLL = 1000.0
+BET_BOOK = "Unibet"   # hier zet je echt in: advies en inzet rekenen met deze prijs
 
 LABELS = {  # leesbare namen voor de uitleg
     "d_elo": "Elo-rating", "d_n_fights": "UFC-ervaring", "d_win_pct": "Winstpercentage",
@@ -141,14 +142,17 @@ def main(argv=None) -> int:
             odds_info = {"source": "ufcalendar (handmatig)", "kind": "sportsbooks"} if oa is not None else None
         mkt = float(fair_prob(oa, ob)) if oa is not None else None
         betable = odds_info is not None and odds_info["kind"] == "sportsbooks"
+        bo = (odds_info or {}).get("books", {}).get(BET_BOOK)   # [odds_a, odds_b] bij Unibet
+        if odds_info is not None:
+            odds_info["bet_book"], odds_info["bet_odds"] = BET_BOOK, bo
         pf = float(apply_stacker(stacker, [mkt], [pm])[0]) if mkt is not None else pm
         pick, edge, stake = None, None, 0.0
         if mkt is not None:
             ea, eb = pf - mkt, (1 - pf) - (1 - mkt)
             side_a = ea >= eb
             edge = ea if side_a else eb
-            if edge >= EDGE_MIN and betable:
-                pp, dd = (pf, am_to_dec(oa)) if side_a else (1 - pf, am_to_dec(ob))
+            if edge >= EDGE_MIN and betable and bo:
+                pp, dd = (pf, am_to_dec(bo[0])) if side_a else (1 - pf, am_to_dec(bo[1]))
                 stake = float(kelly_stake(pp, float(dd), BANKROLL))
                 pick = (m["a"] if side_a else m["b"]) if stake > 0 else None  # edge > 0 maar EV < 0 door marge
         flags = []
@@ -173,7 +177,7 @@ def main(argv=None) -> int:
         }
         out.append(rec)
         if pick and a.lock:
-            dd = float(am_to_dec(oa if pick == m["a"] else ob))
+            dd = float(am_to_dec(bo[0] if pick == m["a"] else bo[1]))
             db_bet = {"bet_id": f"{m['fight_id']}-{version}", "fight_id": m["fight_id"], "model_version": version,
                       "placed_at": now, "pick_id": m["a_id"] if pick == m["a"] else m["b_id"], "pick_name": pick,
                       "odds_taken": dd, "prob": pf if pick == m["a"] else 1 - pf, "stake": round(stake, 2),
@@ -183,7 +187,8 @@ def main(argv=None) -> int:
                         list(db_bet.values()))
         report.append(f"| {m['event']['datum']} | {m['a']} vs {m['b']} | {pf:.1%} / {1 - pf:.1%} | "
                       f"{'' if mkt is None else f'{mkt:.1%}'} | {'' if edge is None else f'{edge:+.1%}'} | "
-                      f"{pick or ('wacht op odds' if mkt is None else 'geen value')} | {stake:.0f} |")
+                      f"{'' if not bo else f'{bo[0]:+d} / {bo[1]:+d}'} | "
+                      f"{pick or ('wacht op odds' if mkt is None else 'geen value' if bo or not betable else 'geen Unibet-odds')} | {stake:.0f} |")
     keys = list(out[0])
     con.execute("DELETE FROM predictions WHERE model_version = ? AND locked_at IS NULL", [version])
     for rec in out:
@@ -191,7 +196,7 @@ def main(argv=None) -> int:
                     [rec[k] for k in keys])
     REPORT_DIR.mkdir(exist_ok=True)
     md = (f"# Voorspellingen ({version}, {now:%Y-%m-%d %H:%M})\n\n"
-          "| Datum | Gevecht | Kans A / B | Markt A | Edge | Advies | Inzet € |\n|---|---|---|---|---|---|---|\n"
+          "| Datum | Gevecht | Kans A / B | Markt A | Edge | Unibet A / B | Advies | Inzet € |\n|---|---|---|---|---|---|---|---|\n"
           + "\n".join(report) + "\n")
     (REPORT_DIR / f"predictions_{now:%Y%m%d}.md").write_text(md)
     print(md)

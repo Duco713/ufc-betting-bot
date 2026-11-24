@@ -40,13 +40,22 @@ function advice(f) {
   const mkt = fairP(f.odds_a, f.odds_b), p = f.p_final;
   const ea = p - mkt, eb = (1 - p) - (1 - mkt);
   const sideA = ea >= eb, edge = sideA ? ea : eb;
-  const dec = amToDec(sideA ? f.odds_a : f.odds_b), pp = sideA ? p : 1 - p;
-  const ev = pp * dec - 1;
   const pm = (f.odds_info || {}).kind === "prediction market";
-  if (edge < S.edge || pm || ev <= 0) return { status: "none", edge, sideA, mkt, ev, dec, pm, pmValue: pm && edge >= S.edge };
+  const bo = betOdds(f), book = (f.odds_info || {}).bet_book || "Unibet";
+  const pp = sideA ? p : 1 - p;
+  if (!pm && !bo) return { status: "nobook", edge, sideA, mkt, book };
+  const dec = bo ? amToDec(sideA ? bo[0] : bo[1]) : amToDec(sideA ? f.odds_a : f.odds_b);
+  const ev = pp * dec - 1;
+  if (edge < S.edge || pm || ev <= 0) return { status: "none", edge, sideA, mkt, ev, dec, pm, pmValue: pm && edge >= S.edge, book };
   const k = ((dec - 1) * pp - (1 - pp)) / (dec - 1);
   const stake = Math.max(0, Math.min(k * S.kelly, S.maxBet)) * S.bankroll;
-  return { status: "bet", edge, sideA, mkt, ev, dec, stake, pick: sideA ? f.a.name : f.b.name };
+  return { status: "bet", edge, sideA, mkt, ev, dec, stake, book, pick: sideA ? f.a.name : f.b.name };
+}
+/* prijs waar je echt inzet (Unibet); null = die bookmaker heeft (nog) geen lijn */
+function betOdds(f) {
+  const oi = f.odds_info || {};
+  if (oi.source && oi.source !== "BestFightOdds") return f.odds_a != null ? [f.odds_a, f.odds_b] : null;  // handmatige odds
+  return oi.bet_odds || null;
 }
 /* odds per bookmaker + lijnbeweging */
 function oddsDetail(f, A, B) {
@@ -68,7 +77,8 @@ function oddsDetail(f, A, B) {
   return src + tbl + mv;
 }
 function adviceTag(f, a = advice(f)) {
-  if (a.status === "bet") return `<span class="tag bet">BET ${esc(last(a.pick))} @ ${num(a.dec)}</span>`;
+  if (a.status === "bet") return `<span class="tag bet" title="Prijs bij ${esc(a.book)}">BET ${esc(last(a.pick))} @ ${num(a.dec)}</span>`;
+  if (a.status === "nobook") return `<span class="tag wait" title="Er zijn odds bij andere bookmakers, maar nog niet bij ${esc(a.book)}">${a.edge >= S.edge ? "Edge +" + pct(a.edge, 0) + ", wacht op " : "Wacht op "}${esc(a.book)}</span>`;
   if (a.status === "none" && a.pm) return `<span class="tag" title="Alleen Polymarket-odds: indicatief, geen virtuele inzet">${a.pmValue ? "Indicatief +" + pct(a.edge, 0) : "Indicatief"}</span>`;
   if (a.status === "none") return `<span class="tag">Geen value</span>`;
   if (a.status === "wait") return `<span class="tag wait">Wacht op odds</span>`;
@@ -288,7 +298,7 @@ function pageFightcard(id) {
       <td>${esc(f.weight_class)}</td><td>${f.rounds === 5 ? `<span class="tag five">5</span>` : "3"}</td>
       <td>${pa == null ? "–" : `<div class="pbar"><i style="width:${pa * 100}%">${Math.round(pa * 100)}%</i><b style="width:${(1 - pa) * 100}%">${Math.round((1 - pa) * 100)}%</b></div>`}</td>
       <td class="num">${f.odds_a == null ? `<span class="mut">–</span>` : `${pct(fairP(f.odds_a, f.odds_b))} / ${pct(1 - fairP(f.odds_a, f.odds_b))}`}</td>
-      <td class="num" ${oddsTitle(f.odds_a)}>${fmtOdds(f.odds_a)} / ${fmtOdds(f.odds_b)}</td>
+      <td class="num" ${oddsTitle(betOdds(f)?.[0])}>${betOdds(f) ? `${fmtOdds(betOdds(f)[0])} / ${fmtOdds(betOdds(f)[1])}` : `<span class="mut">–</span>`}</td>
       <td class="num ${a.edge > 0 ? "up" : a.edge < 0 ? "down" : ""}">${a.edge == null ? "–" : spct(a.edge)}</td>
       <td>${adviceTag(f, a)}</td><td class="num">${a.status === "bet" ? eur(a.stake) : "–"}</td>
       <td>${(f.flags || []).filter(x => x.type !== "data").map(x => `<span class="tag flag" title="${esc(x.text)}">⚠ ${esc(x.type)}</span>`).join(" ")}</td></tr>`;
@@ -299,8 +309,8 @@ function pageFightcard(id) {
     (e.note ? `<div class="advice" style="margin:0 0 14px"><span class="warn">⚠</span>${esc(e.note)}</div>` : "") +
     `<div class="card" style="padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="mut">Voorspellingen gemaakt:</span> <b>${fdate(D.meta.generated_at.slice(0, 10))}</b> · model ${esc(D.meta.version)} · data t/m ${fdate(D.meta.trained_until)} <span class="tag wait" style="margin-left:auto">Nog niet vastgezet: wordt vlak voor het event vastgezet</span></div>
     <div class="filters">${chips.map(([k, l]) => `<button class="tab ${k === filt ? "on" : ""}" data-fcf="${k}">${l}</button>`).join("")}</div>
-    <div class="card tw"><table><tr><th>Gevecht</th><th>Klasse</th><th>Rnd</th><th>Model (A / B)</th><th class="num">Markt</th><th class="num">Odds</th><th class="num">Edge</th><th>Advies</th><th class="num">Inzet</th><th>Vlaggen</th></tr>${rows}</table>
-    <div class="note">Model = model gecombineerd met de markt (waar odds zijn) · Markt = kans zonder bookmakermarge · Advies bij edge ≥ ${pct(S.edge, 0)}, ${S.kelly} Kelly, max ${pct(S.maxBet, 0)} per gevecht (aanpasbaar in Instellingen). Klik een gevecht voor de uitleg.</div></div>` + disclaimer;
+    <div class="card tw"><table><tr><th>Gevecht</th><th>Klasse</th><th>Rnd</th><th>Model (A / B)</th><th class="num">Markt</th><th class="num">Unibet</th><th class="num">Edge</th><th>Advies</th><th class="num">Inzet</th><th>Vlaggen</th></tr>${rows}</table>
+    <div class="note">Model = model gecombineerd met de markt (waar odds zijn) · Markt = kans zonder marge (mediaan van alle bookmakers) · Unibet = de prijs waar je inzet: advies en inzet rekenen daarmee · Advies bij edge ≥ ${pct(S.edge, 0)}, ${S.kelly} Kelly, max ${pct(S.maxBet, 0)} per gevecht (aanpasbaar in Instellingen). Klik een gevecht voor de uitleg.</div></div>` + disclaimer;
 }
 
 /* ------------------------------------------------------------ 4. matchup */
@@ -609,7 +619,7 @@ function wire(r) {
   page().querySelectorAll("[data-del]").forEach(el => el.onclick = () => { if (confirm("Deze virtuele bet verwijderen?")) { LOCAL_BETS = LOCAL_BETS.filter(x => x.id !== el.dataset.del); saveJSON("fm_bets", LOCAL_BETS); rerender(); } });
   const nb = $("#newbet");
   if (nb) {
-    const fill = () => { const f = findFight($("#bf_fight").value); $("#bf_pick").innerHTML = [f.a, f.b].map((x, i) => `<option value="${i}">${esc(x.name)}</option>`).join(""); const o = f.odds_a != null ? amToDec(f.odds_a) : ""; $("#bf_odds").value = o ? o.toFixed(2) : ""; $("#bf_stake").value = Math.round(S.bankroll * .01); };
+    const fill = () => { const f = findFight($("#bf_fight").value); $("#bf_pick").innerHTML = [f.a, f.b].map((x, i) => `<option value="${i}">${esc(x.name)}</option>`).join(""); const o = betOdds(f) ? amToDec(betOdds(f)[0]) : ""; $("#bf_odds").value = o ? o.toFixed(2) : ""; $("#bf_stake").value = Math.round(S.bankroll * .01); };
     nb.onclick = () => { $("#betform").style.display = "block"; fill(); };
     $("#bf_fight").onchange = fill;
     $("#bf_pick").onchange = () => { const f = findFight($("#bf_fight").value), o = $("#bf_pick").value === "0" ? f.odds_a : f.odds_b; $("#bf_odds").value = o != null ? amToDec(o).toFixed(2) : ""; };
