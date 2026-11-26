@@ -6,7 +6,7 @@ data/raw/
 __pycache__/
 .pytest_cache/
 data/external/
-models/
+/models/
 reports/*.csv
 reports_train.log
 .claude/
