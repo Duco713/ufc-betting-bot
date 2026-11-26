@@ -200,6 +200,32 @@ const disclaimer = `<div class="disclaimer">Persoonlijk onderzoeksproject. Er wo
 /* ------------------------------------------------------------ 1. overzicht */
 function settledBets() { return LOCAL_BETS.filter(b => b.result === "W" || b.result === "L"); }
 function betPnl(b) { return b.result === "W" ? b.stake * (b.odds - 1) : b.result === "L" ? -b.stake : 0; }
+/* mijn advies per event: live picks uit advice() + handgeschreven toelichting (data/advies/advies.json) */
+function adviesCard(e) {
+  const A = (D.advies || {})[e.id], fs = e.fights.filter(f => f.card !== "onbevestigd");
+  const adv = fs.map(f => ({ f, a: advice(f) }));
+  const bets = adv.filter(x => x.a.status === "bet");
+  const near = adv.filter(x => x.a.status !== "bet" && x.a.edge >= .02);
+  const wait = adv.filter(x => x.a.status === "wait" || x.a.status === "nobook");
+  const pass = fs.length - bets.length - near.length - wait.length;
+  const nm = x => esc(x.a.sideA ? x.f.a.name : x.f.b.name);
+  return `<div class="card" style="margin-bottom:14px;border-left:4px solid var(--red2)">
+    <h3>Mijn advies voor ${esc(e.name.split(":")[0])}${A ? ` <span class="mut" style="font-weight:400;font-size:12px">· toelichting ${esc(A.geschreven.replace("T", " "))}</span>` : ""}</h3>
+    ${A ? `<div style="font:700 17px var(--head);margin:4px 0 12px">${esc(A.kort)}</div>` : ""}
+    <div class="grid g2">
+      <div>
+        <div class="srow"><b>Inzetten (${bets.length})</b><span class="mut">nu, Unibet</span></div>
+        ${bets.length ? bets.map(x => `<div class="srow cl" data-href="#/matchup/${x.f.id}"><span>✅ <b>${esc(x.a.pick)}</b> <span class="mut">@ ${num(x.a.dec)} · edge ${spct(x.a.edge)}</span></span><b>${eur(x.a.stake)}</b></div>`).join("") : `<div class="srow"><span class="mut">Niets: geen gevecht met genoeg voordeel.</span></div>`}
+        <div class="srow" style="margin-top:8px"><b>Net niet (${near.length})</b><span class="mut">edge ≥ 2%, geen value</span></div>
+        ${near.map(x => `<div class="srow cl" data-href="#/matchup/${x.f.id}"><span>👀 ${nm(x)} <span class="mut">edge ${spct(x.a.edge)}${x.a.ev != null ? " · rendement " + spct(x.a.ev) : ""}</span></span></div>`).join("") || `<div class="srow"><span class="mut">–</span></div>`}
+        <div class="srow" style="margin-top:8px"><span>⏸ Wacht op odds: ${wait.length ? wait.map(x => esc(last(x.f.a.name)) + " vs " + esc(last(x.f.b.name))).join(", ") : "geen"}</span></div>
+        <div class="srow"><span>✋ Passen: <b>${pass}</b> gevechten (model ≈ markt)</span></div>
+      </div>
+      <div>${A ? `<ul style="margin:0;padding-left:18px;line-height:1.5">${A.uitleg.map(t => `<li style="margin-bottom:6px">${esc(t)}</li>`).join("")}</ul>` : `<div class="empty">Nog geen toelichting voor dit event.</div>`}</div>
+    </div>
+    <div class="note">${A ? esc(A.regel) + " " : ""}De lijst links rekent live mee met de nieuwste odds (2× per dag); de toelichting rechts is van het genoemde moment.</div>
+  </div>`;
+}
 function pageOverzicht() {
   const PP = D.paper || {}, MB = D.bets || [];
   const sb = MB.filter(b => ["W", "L", "push"].includes(b.result)), pnl = PP.pnl || 0, staked = PP.staked || 0;
@@ -220,6 +246,7 @@ function pageOverzicht() {
     <div class="kpi"><div class="l">Gevechten goed</div><div class="v">${PP.fights ? pct(PP.accuracy) : "–"}</div><div class="s">${PP.fights ? PP.fights + " gevechten" : "nog geen uitslagen"}</div></div>
     <div class="kpi"><div class="l">Log-loss model / markt</div><div class="v">${PP.n_market ? num(PP.model_log_loss_same, 3) + `<span class="mut" style="font-size:15px"> / ${num(PP.market_log_loss, 3)}</span>` : "–"}</div><div class="s">${PP.n_market ? (PP.model_log_loss_same < PP.market_log_loss ? "▲ beter dan markt" : "▼ markt is beter") : "lager = beter"}</div></div>
   </div>
+  ${adviesCard(ev)}
   <div class="grid g21">
     <div class="card"><h3>Bankroll (paper trading)</h3>
       ${curve.length > 1 ? lineChart({ series: [{ pts: curve, color: "#22c55e", area: true }], yfmt: v => "€" + Math.round(v).toLocaleString("nl-NL"), xfmt: v => fdateShort(new Date(v).toISOString().slice(0, 10)), baseline: D.meta.bankroll }) : `<div class="empty">Nog geen resultaten: de test begint op 5 december.<br>Hier verschijnt dan de bankroll van de model-bets.</div>`}
@@ -323,6 +350,7 @@ function pageFightcard(id) {
     right: `<div class="evstats" style="margin-left:auto"><div><b>${fs.filter(f => f.card !== "onbevestigd").length}</b><span>Gevechten</span></div><div><b>${fs.filter(f => f.odds_a != null).length}</b><span>Met odds</span></div><div><b class="up">${vb.length}</b><span>Value bets</span></div><div><b>${eur(vb.reduce((s, x) => s + x.a.stake, 0))}</b><span>Totale inzet</span></div></div>` }) +
     (e.note ? `<div class="advice" style="margin:0 0 14px"><span class="warn">⚠</span>${esc(e.note)}</div>` : "") +
     `<div class="card" style="padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="mut">Voorspellingen gemaakt:</span> <b>${fdate(D.meta.generated_at.slice(0, 10))}</b> · model ${esc(D.meta.version)} · data t/m ${fdate(D.meta.trained_until)} ${e.locked_at ? `<span class="tag ok" style="margin-left:auto">🔒 Vastgezet ${esc(e.locked_at.slice(0, 16).replace("T", " "))}</span>` : `<span class="tag wait" style="margin-left:auto">Nog niet vastgezet: gebeurt automatisch op de vechtdag (09:00)</span>`}</div>
+    ${adviesCard(e)}
     <div class="filters">${chips.map(([k, l]) => `<button class="tab ${k === filt ? "on" : ""}" data-fcf="${k}">${l}</button>`).join("")}</div>
     <div class="card tw"><table><tr><th>Gevecht</th><th>Klasse</th><th>Rnd</th><th>Model (A / B)</th><th class="num">Markt</th><th class="num">Unibet</th><th class="num">Edge</th><th>Advies</th><th class="num">Inzet</th><th>Vlaggen</th></tr>${rows}</table>
     <div class="note">Model = model gecombineerd met de markt (waar odds zijn) · Markt = kans zonder marge (mediaan van alle bookmakers) · Unibet = de prijs waar je inzet: advies en inzet rekenen daarmee · Advies bij edge ≥ ${pct(S.edge, 0)}, ${S.kelly} Kelly, max ${pct(S.maxBet, 0)} per gevecht (aanpasbaar in Instellingen). Klik een gevecht voor de uitleg.</div></div>` + disclaimer;

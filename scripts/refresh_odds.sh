@@ -11,7 +11,7 @@ $PY -m src.importers.wikipedia || echo "Wikipedia-import mislukt (overgeslagen)"
 $PY -m src.predict.upcoming --auto-lock | grep -E "Vastgezet|Alles" || true   # vechtdag: vastzetten
 $PY -m src.settle > /dev/null                               # uitslagen (data/results/uitslagen.json) afrekenen
 $PY -m src.export.site_data
-git add docs data/results reports/*.md
+git add docs data/results data/advies reports/*.md
 if git diff --cached --quiet; then
   echo "Geen wijzigingen"
 else

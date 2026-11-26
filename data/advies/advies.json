@@ -1,0 +1,15 @@
+{
+  "ufc-fn-2026-12-05": {
+    "geschreven": "2026-11-26T16:30",
+    "kort": "Rustige kaart: grotendeels passen. Hooguit één kleine bet op Tuchalov, en alleen als de Unibet-prijs op de vechtdag nog klopt.",
+    "uitleg": [
+      "Het model zit bij bijna elk gevecht binnen 2% van de markt. Dat betekent: de bookmakers zien hetzelfde als het model, er is geen voordeel te halen.",
+      "Tuchalov (vs Cuțelaba) is het enige gevecht dat nu net over de drempel komt: ~3% edge, maar het verwachte rendement op Unibet is klein (rond +1%). Daarom maar €4 (0,4% van de bankroll). Zakt de Unibet-prijs onder ca. -180, dan vervalt de bet vanzelf.",
+      "Pinto (vs Spivac) heeft de grootste edge (~4%), maar bij -345 betaal je te veel marge: verwacht rendement negatief. Niet doen.",
+      "Andrusca vs Osmanli heeft nog geen odds; daar kan nog iets verschijnen.",
+      "Drie gevechten hebben een UFC-debutant (Abdullaev, Gnizditskiy/Satybaldiev, Rodrigues/Duclos): daar weet het model weinig, dus bewust geen bet.",
+      "Geen underdog-gokjes of longshots: dat verloor in de backtest structureel geld."
+    ],
+    "regel": "Het definitieve advies wordt op 5 dec om 09:00 vastgezet met de odds van dat moment. Dit is de eerste testweek: speel mee op papier of met een heel klein bedrag."
+  }
+}

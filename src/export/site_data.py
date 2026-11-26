@@ -20,6 +20,7 @@ from src.features.build import build_all
 from src.models.train import (EDGE_MIN, KELLY_FRAC, MAX_STAKE, MODEL_DIR, REPORT_DIR, am_to_dec, feature_cols)
 from src.predict.upcoming import LABELS, UPCOMING_JSON, upcoming_rows
 from src.settle import RESULTS_DDL, scorecard
+ADVIES_JSON = db.ROOT / "data" / "advies" / "advies.json"  # handgeschreven toelichting per event
 from src.tipsters import SOURCES as TIP_SOURCES, scoreboard as tip_scoreboard, scored_picks
 
 OUT = db.ROOT / "docs" / "data"
@@ -340,6 +341,7 @@ def main(argv=None) -> int:
                                 "max_dd": float((1 - bets.bank / bets.bank.cummax()).max()),
                                 "curve": [{"date": r.date, "bank": r.bank} for r in bets.iloc[::5].itertuples()]}},
         "bets": open_bets, "paper": scorecard(con), "tipsters": tip_scoreboard(con), "status": status,
+        "advies": json.loads(ADVIES_JSON.read_text()) if ADVIES_JSON.exists() else {},
     }
     (OUT / "site.json").write_text(json.dumps(clean(site), ensure_ascii=False))
     bt = W[["date", "y", "mm", "blend", "mkt_p", "odds_a", "odds_b"]].copy()
