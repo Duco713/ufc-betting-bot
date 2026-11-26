@@ -1,0 +1,84 @@
+{
+  "ufc-fn-2026-12-05": {
+    "combat-edge": [
+      {
+        "captured_at": "2026-11-26T15:16",
+        "url": "https://combat-edge.com/event/ufc-fight-night-adesanya-vs-magomedov-3075/predictions/",
+        "picks": [
+          {
+            "a": "Israel Adesanya",
+            "b": "Shara Magomedov",
+            "pick": "Shara Magomedov",
+            "prob": 0.581
+          },
+          {
+            "a": "Ian Machado Garry",
+            "b": "Yaroslav Amosov",
+            "pick": "Ian Machado Garry",
+            "prob": 0.587
+          },
+          {
+            "a": "Serghei Spivac",
+            "b": "Mario Pinto",
+            "pick": "Mario Pinto",
+            "prob": 0.75
+          },
+          {
+            "a": "Levan Chokheli",
+            "b": "Islam Dulatov",
+            "pick": "Islam Dulatov",
+            "prob": 0.576
+          },
+          {
+            "a": "Mairon Santos",
+            "b": "Akbar Abdullaev",
+            "pick": "Mairon Santos",
+            "prob": 0.501
+          },
+          {
+            "a": "Magomed Tuchalov",
+            "b": "Ion Cuțelaba",
+            "pick": "Magomed Tuchalov",
+            "prob": 0.745
+          },
+          {
+            "a": "Bruno Silva",
+            "b": "Jafel Filho",
+            "pick": "Jafel Filho",
+            "prob": 0.699
+          },
+          {
+            "a": "Uran Satybaldiev",
+            "b": "Ivan Gnizditskiy",
+            "pick": "Uran Satybaldiev",
+            "prob": 0.799
+          },
+          {
+            "a": "Marco Tulio",
+            "b": "JunYong Park",
+            "pick": "Marco Tulio",
+            "prob": 0.549
+          },
+          {
+            "a": "Pavel Andrusca",
+            "b": "Mehemmedeli Osmanli",
+            "pick": "Pavel Andrusca",
+            "prob": 0.63
+          },
+          {
+            "a": "Modestino Rodrigues",
+            "b": "Matthieu Duclos",
+            "pick": "Modestino Rodrigues",
+            "prob": 0.644
+          },
+          {
+            "a": "Abdul Hussein",
+            "b": "Hecher Sosa",
+            "pick": "Abdul Hussein",
+            "prob": 0.517
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -20,6 +20,7 @@ from src.features.build import build_all
 from src.models.train import (EDGE_MIN, KELLY_FRAC, MAX_STAKE, MODEL_DIR, REPORT_DIR, am_to_dec, feature_cols)
 from src.predict.upcoming import LABELS, UPCOMING_JSON, upcoming_rows
 from src.settle import RESULTS_DDL, scorecard
+from src.tipsters import SOURCES as TIP_SOURCES, scoreboard as tip_scoreboard, scored_picks
 
 OUT = db.ROOT / "docs" / "data"
 MAIN_CLASSES = ["Flyweight", "Bantamweight", "Featherweight", "Lightweight", "Welterweight", "Middleweight",
@@ -167,6 +168,18 @@ def main(argv=None) -> int:
                 "odds_closing": None if pd.isna(b.odds_closing) else float(b.odds_closing),
                 "clv": None if pd.isna(b.clv) else float(b.clv)}
 
+    # ---------------- tipsters: laatste pick per bron per gevecht
+    TP = scored_picks(con)
+    tip_names = {x["id"]: x["naam"] for x in json.loads(TIP_SOURCES.read_text())["bronnen"]} if TIP_SOURCES.exists() else {}
+
+    def tips_for(fid):
+        if TP.empty:
+            return []
+        d = TP[TP.fight_id == fid]
+        return [{"source": tip_names.get(r.source, r.source), "pick": r.pick,
+                 "prob": None if pd.isna(r.prob) else float(r.prob), "correct": None if pd.isna(r.correct) else int(r.correct)}
+                for r in d.itertuples()]
+
     # ---------------- events + fights
     events = []
     for w in data["weekenden"]:
@@ -207,6 +220,7 @@ def main(argv=None) -> int:
                 "flags": [] if p is None else json.loads(p["flags"]), "common": common,
                 "locked": bool(p is not None and not pd.isna(p.locked_at)),
                 "locked_bet": locked_bet(m["fight_id"]), "result": fight_result(m["fight_id"]),
+                "tips": tips_for(m["fight_id"]),
             })
         for x in [x for x in ev["fights"] if x["kaart"] == "onbevestigd"]:
             fights.append({"id": f"{ev['id']}-{x['nr']:02d}", "card": "onbevestigd", "order": x["nr"],
@@ -325,7 +339,7 @@ def main(argv=None) -> int:
                                 "hit": float(bets.won.mean()), "bankroll": float(bets.bank.iloc[-1]),
                                 "max_dd": float((1 - bets.bank / bets.bank.cummax()).max()),
                                 "curve": [{"date": r.date, "bank": r.bank} for r in bets.iloc[::5].itertuples()]}},
-        "bets": open_bets, "paper": scorecard(con), "status": status,
+        "bets": open_bets, "paper": scorecard(con), "tipsters": tip_scoreboard(con), "status": status,
     }
     (OUT / "site.json").write_text(json.dumps(clean(site), ensure_ascii=False))
     bt = W[["date", "y", "mm", "blend", "mkt_p", "odds_a", "odds_b"]].copy()

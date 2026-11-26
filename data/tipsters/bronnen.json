@@ -1,0 +1,9 @@
+{
+  "uitleg": "Publieke voorspellers die we tijdens de testperiode volgen. Picks worden vóór het vastzetten (vrijdagavond / vechtdag 09:00) met tijdstip opgeslagen in picks.json en na het event gescoord: % goed, ROI op de odds van dat moment, CLV.",
+  "bronnen": [
+    {"id": "combat-edge", "naam": "Combat Edge", "type": "model", "url": "https://combat-edge.com", "zoek": "combat-edge.com <eventnaam> predictions", "noot": "Statistisch model met kansen per gevecht, hele kaart"},
+    {"id": "mmafighting", "naam": "MMA Fighting (predictions)", "type": "journalist", "url": "https://www.mmafighting.com", "zoek": "mmafighting.com <eventnaam> predictions", "noot": "Volledige kaart, één schrijver, verschijnt rond de vechtdag"},
+    {"id": "mmajunkie", "naam": "MMA Junkie (staff picks)", "type": "journalisten-panel", "url": "https://mmajunkie.usatoday.com", "zoek": "mmajunkie <eventnaam> predictions staff picks", "noot": "Meerderheid van het panel telt als pick"},
+    {"id": "tapology", "naam": "Tapology (community)", "type": "publiek", "url": "https://www.tapology.com", "zoek": "tapology <eventnaam> community predictions", "noot": "Wat het grote publiek kiest (meerderheid)"}
+  ]
+}

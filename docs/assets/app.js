@@ -357,7 +357,9 @@ function pageMatchup(id) {
     <div class="card"><h3>Odds & markt</h3>
       ${f.odds_a != null ? `${barChart([{ label: "Model " + last(A.name), value: f.p_model, color: "#2f6bff" }, { label: "Markt " + last(A.name), value: fairP(f.odds_a, f.odds_b), color: "#6b717c" }, { label: "Eind " + last(A.name), value: pa, color: "#4c86ff" }], { yfmt: v => pct(v, 0), h: 180 })}
       ${oddsDetail(f, A, B)}` : `<div class="empty">Nog geen odds voor dit gevecht.<br>Advies volgt zodra de lijn uitkomt.</div>`}</div>
-    <div class="card"><h3>Nieuws & kamp</h3>
+    <div class="card"><h3>Wat zeggen anderen</h3>
+      ${(f.tips || []).length ? f.tips.map(t => `<div class="srow"><span style="flex:1">${esc(t.source)}</span><b>${esc(last(t.pick))}${t.prob != null ? ` <span class="mut">${pct(t.prob, 0)}</span>` : ""}</b>${t.correct != null ? ` <span class="tag ${t.correct ? "ok" : "flag"}">${t.correct ? "✓" : "✗"}</span>` : ""}</div>`).join("") : `<div class="empty">Nog geen picks van tipsters.</div>`}
+      <h3 style="margin-top:16px">Nieuws & kamp</h3>
       ${(f.flags || []).map(x => `<div class="srow"><span class="tag ${x.type === "data" ? "" : "flag"}">${esc(x.type)}</span><span style="flex:1">${x.fighter ? `<b>${esc(x.fighter)}</b>: ` : ""}${esc(x.text)}</span></div>`).join("") || `<div class="empty">Geen vlaggen</div>`}
       <div class="note">Nieuws, trainingskamp en weigh-ins worden nog niet automatisch verzameld (fase 7).</div></div>
   </div>
@@ -427,6 +429,18 @@ function pageVechter(id) {
 }
 
 /* ------------------------------------------------------------ 6. bet-log */
+/* tipsters vs model */
+function tipstersCard() {
+  const T = D.tipsters || [];
+  const row = t => `<tr><td><b>${esc(t.name)}</b><div class="rec">${esc(t.type || "")}</div></td><td class="num">${t.picks}</td><td class="num">${t.settled}</td>
+    <td class="num">${t.accuracy != null ? pct(t.accuracy) : "–"}</td><td class="num">${t.model_accuracy_same != null ? pct(t.model_accuracy_same) : "–"}</td>
+    <td class="num">${t.fav_accuracy_same != null ? pct(t.fav_accuracy_same) : "–"}</td><td class="num">${t.fav_share != null ? pct(t.fav_share, 0) : "–"}</td>
+    <td class="num ${t.roi > 0 ? "up" : t.roi < 0 ? "down" : ""}">${t.roi != null ? spct(t.roi) : "–"}</td><td class="num ${t.avg_clv > 0 ? "up" : t.avg_clv < 0 ? "down" : ""}">${t.avg_clv != null ? spct(t.avg_clv) : "–"}</td></tr>`;
+  return `<div class="card" style="margin-bottom:14px"><h3>Tipsters vs. model</h3>
+    ${T.length ? `<div class="tw"><table><tr><th>Bron</th><th class="num">Picks</th><th class="num">Uitslag</th><th class="num">% goed</th><th class="num">Model (zelfde)</th><th class="num">Favoriet (zelfde)</th><th class="num">Kiest favoriet</th><th class="num">ROI</th><th class="num">CLV</th></tr>${T.map(row).join("")}</table></div>`
+      : `<div class="empty">Nog geen picks vastgelegd.</div>`}
+    <div class="note">Picks worden vóór het event met tijdstip vastgelegd. "Model (zelfde)" en "Favoriet (zelfde)" = hoe vaak ons model en simpelweg de favoriet goed zaten op precies dezelfde gevechten. ROI = 1 eenheid per pick op de Unibet-prijs van dat moment. Pas na veel picks zegt dit iets.</div></div>`;
+}
 /* automatisch vastgezette model-bets (zelfde voor iedereen) */
 function modelBetsCard() {
   const P = D.paper || {}, B = D.bets || [];
@@ -453,7 +467,7 @@ function pageBets() {
   const avgOdds = LOCAL_BETS.length ? LOCAL_BETS.reduce((s, b) => s + b.odds, 0) / LOCAL_BETS.length : null;
   const advised = allFights().map(f => ({ f, a: advice(f) })).filter(x => x.a.status === "bet" && !LOCAL_BETS.some(b => b.fight_id === x.f.id));
   const opts = allFights().filter(f => f.card !== "onbevestigd").map(f => `<option value="${f.id}">${esc(f.event.name.split(":")[0])}: ${esc(f.a.name)} vs ${esc(f.b.name)}</option>`).join("");
-  return ph("Bet-log (paper trading)", { sub: "Je virtuele inzetten worden alleen in deze browser bewaard. Vastzetten vóór het gevecht, daarna niet meer wijzigen: dat houdt de test eerlijk." }) + modelBetsCard() + `
+  return ph("Bet-log (paper trading)", { sub: "Je virtuele inzetten worden alleen in deze browser bewaard. Vastzetten vóór het gevecht, daarna niet meer wijzigen: dat houdt de test eerlijk." }) + modelBetsCard() + tipstersCard() + `
   <div class="kpis">
     <div class="kpi"><div class="l">Totaal bets</div><div class="v">${LOCAL_BETS.length}</div></div>
     <div class="kpi"><div class="l">Winst%</div><div class="v">${sb.length ? pct(sb.filter(b => b.result === "W").length / sb.length) : "–"}</div></div>
