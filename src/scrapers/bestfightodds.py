@@ -146,11 +146,13 @@ def _consensus(rows: list[tuple]) -> dict | None:
     return {"odds_a": dec_to_am(da), "odds_b": dec_to_am(db_), "n_books": len(use), "kind": kind}
 
 
-def odds_for(con, name_a: str, name_b: str) -> dict | None:
-    """Laatste consensus + per bookmaker + historie voor een gevecht, op naam (volgorde maakt niet uit)."""
+def odds_for(con, name_a: str, name_b: str, before: datetime | None = None) -> dict | None:
+    """Laatste consensus + per bookmaker + historie voor een gevecht, op naam (volgorde maakt niet uit).
+    `before` (UTC): alleen metingen vóór dit moment, bv. de aanvang -> slotodds."""
     con.execute(DDL)
     ka, kb = norm_name(name_a), norm_name(name_b)
-    df = con.execute("SELECT * FROM odds_snapshots WHERE source='bestfightodds' ORDER BY captured_at").df()
+    df = con.execute("SELECT * FROM odds_snapshots WHERE source='bestfightodds' AND captured_at < ? ORDER BY captured_at",
+                     [before or datetime(2100, 1, 1)]).df()
     if df.empty:
         return None
     k1, k2 = df.fighter_1.map(norm_name), df.fighter_2.map(norm_name)

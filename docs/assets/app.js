@@ -36,6 +36,11 @@ const allFights = () => D.events.filter(e => !e.none).flatMap(e => e.fights.map(
 /* advies opnieuw berekenen met de instellingen van deze bezoeker */
 function advice(f) {
   if (f.card === "onbevestigd" || f.p_final == null) return { status: "unconfirmed" };
+  if (f.locked) {   // vastgezet: het advies van dat moment, niet herberekenen
+    const lb = f.locked_bet;
+    if (lb) return { status: "bet", locked: true, edge: f.edge, pick: lb.pick, dec: lb.odds, stake: lb.stake, sideA: lb.pick === f.a.name, book: "Unibet" };
+    return { status: f.odds_a == null ? "wait" : "none", locked: true, edge: f.edge };
+  }
   if (f.odds_a == null || f.odds_b == null) return { status: "wait" };
   const mkt = fairP(f.odds_a, f.odds_b), p = f.p_final;
   const ea = p - mkt, eb = (1 - p) - (1 - mkt);
@@ -76,8 +81,15 @@ function oddsDetail(f, A, B) {
   } else mv = `<div class="note">Lijnbeweging verschijnt na de volgende odds-meting.</div>`;
   return src + tbl + mv;
 }
+function resultTag(f) {
+  const r = f.result;
+  if (r.outcome !== "win") return `<span class="tag">${esc(r.outcome)}</span>`;
+  const right = f.p_final != null && (f.p_final > .5) === (r.y_a === 1);
+  return `<span class="tag ${right ? "ok" : "flag"}" title="${esc(r.method || "")}${r.round ? " R" + r.round : ""}">${right ? "✓" : "✗"} ${esc(last(r.winner))}</span>`;
+}
 function adviceTag(f, a = advice(f)) {
-  if (a.status === "bet") return `<span class="tag bet" title="Prijs bij ${esc(a.book)}">BET ${esc(last(a.pick))} @ ${num(a.dec)}</span>`;
+  if (f.result) return resultTag(f) + (a.status === "bet" ? ` <span class="tag ${f.locked_bet?.result === "W" ? "bet" : ""}">${f.locked_bet?.result === "W" ? "+" : ""}${eur(f.locked_bet?.pnl ?? 0)}</span>` : "");
+  if (a.status === "bet") return `<span class="tag bet" title="Prijs bij ${esc(a.book)}${a.locked ? " · vastgezet" : ""}">${a.locked ? "🔒 " : ""}BET ${esc(last(a.pick))} @ ${num(a.dec)}</span>`;
   if (a.status === "nobook") return `<span class="tag wait" title="Er zijn odds bij andere bookmakers, maar nog niet bij ${esc(a.book)}">${a.edge >= S.edge ? "Edge +" + pct(a.edge, 0) + ", wacht op " : "Wacht op "}${esc(a.book)}</span>`;
   if (a.status === "none" && a.pm) return `<span class="tag" title="Alleen Polymarket-odds: indicatief, geen virtuele inzet">${a.pmValue ? "Indicatief +" + pct(a.edge, 0) : "Indicatief"}</span>`;
   if (a.status === "none") return `<span class="tag">Geen value</span>`;
@@ -307,7 +319,7 @@ function pageFightcard(id) {
   return ph(esc(e.name), { back: "#/events", sub: `📅 ${fdate(e.date)} · ${esc(Object.entries(e.times || {}).map(([k, v]) => (k === "main_card" ? "main card " : "prelims ") + v).join(" · "))} (NL) · 📍 ${esc(e.location)} <span class="tag ${e.type === "PPV" ? "ppv" : "fn"}">${e.type}</span>`,
     right: `<div class="evstats" style="margin-left:auto"><div><b>${fs.filter(f => f.card !== "onbevestigd").length}</b><span>Gevechten</span></div><div><b>${fs.filter(f => f.odds_a != null).length}</b><span>Met odds</span></div><div><b class="up">${vb.length}</b><span>Value bets</span></div><div><b>${eur(vb.reduce((s, x) => s + x.a.stake, 0))}</b><span>Totale inzet</span></div></div>` }) +
     (e.note ? `<div class="advice" style="margin:0 0 14px"><span class="warn">⚠</span>${esc(e.note)}</div>` : "") +
-    `<div class="card" style="padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="mut">Voorspellingen gemaakt:</span> <b>${fdate(D.meta.generated_at.slice(0, 10))}</b> · model ${esc(D.meta.version)} · data t/m ${fdate(D.meta.trained_until)} <span class="tag wait" style="margin-left:auto">Nog niet vastgezet: wordt vlak voor het event vastgezet</span></div>
+    `<div class="card" style="padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="mut">Voorspellingen gemaakt:</span> <b>${fdate(D.meta.generated_at.slice(0, 10))}</b> · model ${esc(D.meta.version)} · data t/m ${fdate(D.meta.trained_until)} ${e.locked_at ? `<span class="tag ok" style="margin-left:auto">🔒 Vastgezet ${esc(e.locked_at.slice(0, 16).replace("T", " "))}</span>` : `<span class="tag wait" style="margin-left:auto">Nog niet vastgezet: gebeurt automatisch op de vechtdag (09:00)</span>`}</div>
     <div class="filters">${chips.map(([k, l]) => `<button class="tab ${k === filt ? "on" : ""}" data-fcf="${k}">${l}</button>`).join("")}</div>
     <div class="card tw"><table><tr><th>Gevecht</th><th>Klasse</th><th>Rnd</th><th>Model (A / B)</th><th class="num">Markt</th><th class="num">Unibet</th><th class="num">Edge</th><th>Advies</th><th class="num">Inzet</th><th>Vlaggen</th></tr>${rows}</table>
     <div class="note">Model = model gecombineerd met de markt (waar odds zijn) · Markt = kans zonder marge (mediaan van alle bookmakers) · Unibet = de prijs waar je inzet: advies en inzet rekenen daarmee · Advies bij edge ≥ ${pct(S.edge, 0)}, ${S.kelly} Kelly, max ${pct(S.maxBet, 0)} per gevecht (aanpasbaar in Instellingen). Klik een gevecht voor de uitleg.</div></div>` + disclaimer;
@@ -412,6 +424,24 @@ function pageVechter(id) {
 }
 
 /* ------------------------------------------------------------ 6. bet-log */
+/* automatisch vastgezette model-bets (zelfde voor iedereen) */
+function modelBetsCard() {
+  const P = D.paper || {}, B = D.bets || [];
+  const k = (l, v, sub = "") => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`;
+  return `<div class="card" style="margin-bottom:14px"><h3>Model-bets (automatisch vastgezet op de vechtdag)</h3>
+    <div class="kpis">${k("Afgerekende gevechten", P.fights ?? 0, P.fights ? "goed: " + pct(P.accuracy) : "na 5 dec")}
+      ${k("Log-loss model / markt", P.n_market ? `${num(P.model_log_loss_same, 3)} / ${num(P.market_log_loss, 3)}` : "–", "lager = beter, zelfde gevechten")}
+      ${k("Virtuele bets", P.bets ?? 0, P.bets ? "geraakt: " + pct(P.hit) : "")}
+      ${k("W/V · ROI", P.bets ? `${eur(P.pnl)} · ${spct(P.roi)}` : "–")}
+      ${k("Gem. CLV", P.avg_clv != null ? spct(P.avg_clv) : "–", "t.o.v. Unibet-slotodds")}</div>
+    ${B.length ? `<div class="tw"><table><tr><th>Datum</th><th>Gevecht</th><th>Pick</th><th class="num">Odds</th><th class="num">Inzet</th><th>Uitslag</th><th class="num">Slotodds</th><th class="num">CLV</th><th class="num">W/V</th></tr>
+      ${B.map(b => `<tr><td>${fdateShort(String(b.event_date || b.placed_at).slice(0, 10))}</td><td>${esc(b.fight || b.fight_id)}</td><td><b>${esc(b.pick_name)}</b></td><td class="num">${num(b.odds_taken)}</td><td class="num">${eur(b.stake)}</td>
+        <td>${b.result === "open" ? `<span class="tag wait">open</span>` : `<span class="tag ${b.result === "W" ? "bet" : ""}">${esc(b.result)}</span>`}</td>
+        <td class="num">${b.odds_closing ? num(b.odds_closing) : "–"}</td><td class="num ${b.clv > 0 ? "up" : b.clv < 0 ? "down" : ""}">${b.clv != null ? spct(b.clv) : "–"}</td>
+        <td class="num ${b.pnl > 0 ? "up" : b.pnl < 0 ? "down" : ""}">${b.pnl != null ? eur(b.pnl) : "–"}</td></tr>`).join("")}</table></div>`
+      : `<div class="empty">Nog geen vastgezette model-bets. Op de vechtdag om 09:00 zet de ververs-taak de voorspellingen en bets vast; na het event worden ze afgerekend.</div>`}
+    <div class="note">CLV = genomen odds ÷ slotodds − 1. Positief over veel bets = het model vindt echt betere prijzen dan de markt.</div></div>`;
+}
 function pageBets() {
   const fs = loadJSON("fm_betfilter", "alle");
   const list = LOCAL_BETS.filter(b => fs === "alle" || (fs === "open" ? b.result === "open" : b.result !== "open"));
@@ -420,7 +450,7 @@ function pageBets() {
   const avgOdds = LOCAL_BETS.length ? LOCAL_BETS.reduce((s, b) => s + b.odds, 0) / LOCAL_BETS.length : null;
   const advised = allFights().map(f => ({ f, a: advice(f) })).filter(x => x.a.status === "bet" && !LOCAL_BETS.some(b => b.fight_id === x.f.id));
   const opts = allFights().filter(f => f.card !== "onbevestigd").map(f => `<option value="${f.id}">${esc(f.event.name.split(":")[0])}: ${esc(f.a.name)} vs ${esc(f.b.name)}</option>`).join("");
-  return ph("Bet-log (paper trading)", { sub: "Je virtuele inzetten worden alleen in deze browser bewaard. Vastzetten vóór het gevecht, daarna niet meer wijzigen: dat houdt de test eerlijk." }) + `
+  return ph("Bet-log (paper trading)", { sub: "Je virtuele inzetten worden alleen in deze browser bewaard. Vastzetten vóór het gevecht, daarna niet meer wijzigen: dat houdt de test eerlijk." }) + modelBetsCard() + `
   <div class="kpis">
     <div class="kpi"><div class="l">Totaal bets</div><div class="v">${LOCAL_BETS.length}</div></div>
     <div class="kpi"><div class="l">Winst%</div><div class="v">${sb.length ? pct(sb.filter(b => b.result === "W").length / sb.length) : "–"}</div></div>
@@ -519,7 +549,7 @@ function pageBacktest() {
     <div class="card"><h3>Resultaat</h3><div id="btres"><div class="empty">Laden…</div></div></div></div>` + disclaimer;
 }
 async function drawBacktest() {
-  if (!BT) BT = await fetch("data/backtest.json").then(r => r.json());
+  if (!BT) BT = await fetch("data/backtest.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json());
   const cfg = { edge: S.edge, kelly: S.kelly, maxBet: S.maxBet, maxEvent: S.maxEvent, model: "mm", ...loadJSON("fm_btcfg", {}) };
   const cur = runBacktest(cfg, cfg.model), cons = runBacktest({ edge: .05, kelly: .125, maxBet: .01, maxEvent: .04 }, cfg.model), fav = runBacktest(cfg, "fav");
   const row = (l, r, c) => `<tr><td><i style="display:inline-block;width:10px;height:10px;background:${c};border-radius:2px"></i> ${l}</td><td class="num">${r.n}</td><td class="num">${pct(r.hit)}</td><td class="num ${r.roi >= 0 ? "up" : "down"}">${spct(r.roi)}</td><td class="num">${eur(r.bank)}</td><td class="num">${pct(r.mdd, 0)}</td></tr>`;
@@ -675,7 +705,7 @@ function wireSearch() {
 }
 
 /* ------------------------------------------------------------ start */
-fetch("data/site.json").then(r => r.json()).then(d => {
+fetch("data/site.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.json()).then(d => {
   D = d;
   $("#ver").textContent = d.meta.version;
   $("#upd").textContent = "Data bijgewerkt: " + fdate(d.meta.generated_at.slice(0, 10)) + " " + d.meta.generated_at.slice(11, 16);

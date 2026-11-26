@@ -23,6 +23,7 @@ from src.models.train import (EDGE_MIN, MODEL_DIR, REPORT_DIR, am_to_dec, apply_
 
 UPCOMING_JSON = db.ROOT / "data" / "upcoming" / "testweekenden.json"
 BANKROLL = 1000.0
+MAX_EVENT = 0.06      # max. 6% van de bankroll per event
 BET_BOOK = "Unibet"   # hier zet je echt in: advies en inzet rekenen met deze prijs
 
 LABELS = {  # leesbare namen voor de uitleg
@@ -110,7 +111,9 @@ def method_est(ms: pd.DataFrame, fid: str, p: float) -> dict:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--lock", action="store_true", help="voorspellingen vastzetten")
+    ap.add_argument("--lock", action="store_true", help="alle voorspellingen nu vastzetten")
+    ap.add_argument("--auto-lock", action="store_true",
+                    help="events van vandaag of eerder vastzetten (draait in de ververs-taak op de vechtdag)")
     ap.add_argument("--db", default=str(db.DEFAULT_DB))
     a = ap.parse_args(argv)
 
@@ -121,6 +124,9 @@ def main(argv=None) -> int:
     con.execute("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS odds_info VARCHAR")
     data = json.loads(UPCOMING_JSON.read_text())
     up, meta = upcoming_rows(con, data)
+    locked = {r[0] for r in con.execute(
+        "SELECT fight_id FROM predictions WHERE model_version=? AND locked_at IS NOT NULL", [version]).fetchall()}
+    today = datetime.now().date().isoformat()
 
     X = build_all(con, up)
     U = X[X.fight_id.isin(up.fight_id)].set_index("fight_id").loc[up.fight_id].reset_index()
@@ -128,7 +134,7 @@ def main(argv=None) -> int:
     U["p_model"] = (p_lr + p_gbm) / 2
     ms = method_shares(con)
     now = datetime.now()
-    out, report = [], []
+    out, report, new_bets = [], [], []
     for i, m in enumerate(meta):
         r = U.iloc[i]
         pm = float(r.p_model)
@@ -164,9 +170,10 @@ def main(argv=None) -> int:
         flags.append({"type": "data", "fighter": "", "text": "Stats t/m 8 aug 2026: recentere gevechten ontbreken"})
         if odds_info and odds_info["kind"] != "sportsbooks":
             flags.append({"type": "odds", "fighter": "", "text": "Alleen prediction-market-odds (Polymarket): indicatief, geen virtuele inzet"})
+        lock_now = m["fight_id"] not in locked and (a.lock or (a.auto_lock and m["event"]["datum"] <= today))
         rec = {
             "fight_id": m["fight_id"], "model_version": version, "created_at": now,
-            "locked_at": now if a.lock else None, "event_id": m["event"]["id"], "event_date": m["event"]["datum"],
+            "locked_at": now if lock_now else None, "event_id": m["event"]["id"], "event_date": m["event"]["datum"],
             "fighter_a_id": m["a_id"], "fighter_a_name": m["a"], "fighter_b_id": m["b_id"], "fighter_b_name": m["b"],
             "prob_model_a": pm, "prob_market_a": mkt, "prob_final_a": pf, "odds_a": oa, "odds_b": ob,
             "pick": pick, "edge": edge, "stake": round(stake, 2),
@@ -175,20 +182,34 @@ def main(argv=None) -> int:
             "flags": json.dumps(flags),
             "odds_info": json.dumps(odds_info) if odds_info else None,
         }
-        out.append(rec)
-        if pick and a.lock:
+        if m["fight_id"] not in locked:  # vastgezet = bevroren: niet overschrijven
+            out.append(rec)
+        if pick and lock_now:
             dd = float(am_to_dec(bo[0] if pick == m["a"] else bo[1]))
             db_bet = {"bet_id": f"{m['fight_id']}-{version}", "fight_id": m["fight_id"], "model_version": version,
                       "placed_at": now, "pick_id": m["a_id"] if pick == m["a"] else m["b_id"], "pick_name": pick,
                       "odds_taken": dd, "prob": pf if pick == m["a"] else 1 - pf, "stake": round(stake, 2),
                       "result": "open"}
-            cols_b = ", ".join(db_bet)
-            con.execute(f"INSERT OR REPLACE INTO bets ({cols_b}) VALUES ({', '.join('?' * len(db_bet))})",
-                        list(db_bet.values()))
+            new_bets.append({**db_bet, "event_id": m["event"]["id"]})
         report.append(f"| {m['event']['datum']} | {m['a']} vs {m['b']} | {pf:.1%} / {1 - pf:.1%} | "
                       f"{'' if mkt is None else f'{mkt:.1%}'} | {'' if edge is None else f'{edge:+.1%}'} | "
                       f"{'' if not bo else f'{bo[0]:+d} / {bo[1]:+d}'} | "
                       f"{pick or ('wacht op odds' if mkt is None else 'geen value' if bo or not betable else 'geen Unibet-odds')} | {stake:.0f} |")
+    # max. MAX_EVENT van de bankroll per event: inzetten naar rato verlagen
+    for ev_id in {b["event_id"] for b in new_bets}:
+        evb = [b for b in new_bets if b["event_id"] == ev_id]
+        tot = sum(b["stake"] for b in evb)
+        if tot > MAX_EVENT * BANKROLL:
+            for b in evb:
+                b["stake"] = round(b["stake"] * MAX_EVENT * BANKROLL / tot, 2)
+    for b in new_bets:
+        b.pop("event_id")
+        con.execute(f"INSERT OR REPLACE INTO bets ({', '.join(b)}) VALUES ({', '.join('?' * len(b))})", list(b.values()))
+    if new_bets or any(r["locked_at"] for r in out):
+        print(f"Vastgezet: {sum(1 for r in out if r['locked_at'])} voorspellingen, {len(new_bets)} virtuele bets")
+    if not out:
+        print("Alles is al vastgezet.")
+        return 0
     keys = list(out[0])
     con.execute("DELETE FROM predictions WHERE model_version = ? AND locked_at IS NULL", [version])
     for rec in out:

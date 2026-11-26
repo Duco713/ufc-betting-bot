@@ -19,6 +19,7 @@ from src import db
 from src.features.build import build_all
 from src.models.train import (EDGE_MIN, KELLY_FRAC, MAX_STAKE, MODEL_DIR, REPORT_DIR, am_to_dec, feature_cols)
 from src.predict.upcoming import LABELS, UPCOMING_JSON, upcoming_rows
+from src.settle import RESULTS_DDL, scorecard
 
 OUT = db.ROOT / "docs" / "data"
 MAIN_CLASSES = ["Flyweight", "Bantamweight", "Featherweight", "Lightweight", "Welterweight", "Middleweight",
@@ -95,8 +96,11 @@ def sim_bets(W: pd.DataFrame, col: str, edge_min=EDGE_MIN, kelly=KELLY_FRAC, max
     return pd.DataFrame(rows)
 
 
-def main() -> int:
-    con = db.connect(db.ROOT / "data" / "ufc.duckdb")
+def main(argv=None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--db", default=str(db.DEFAULT_DB))
+    con = db.connect(ap.parse_args(argv).db)
     bundle = joblib.load(MODEL_DIR / "model.joblib")
     version = bundle["version"]
     data = json.loads(UPCOMING_JSON.read_text())
@@ -139,6 +143,30 @@ def main() -> int:
             "division_avg": div_avg.get(wc, {}),
         }
 
+    # ---------------- paper trading: vastgezette bets + uitslagen
+    con.execute(RESULTS_DDL)
+    res_idx = con.execute("SELECT * FROM paper_results").df().set_index("fight_id")
+    bet_rows = con.execute("SELECT * FROM bets").df()
+    bet_idx = bet_rows.set_index("fight_id") if len(bet_rows) else bet_rows
+
+    def fight_result(fid):
+        if fid not in res_idx.index:
+            return None
+        r = res_idx.loc[fid]
+        return {"winner": r.winner_name, "outcome": r.outcome, "method": r.method,
+                "round": None if pd.isna(r.end_round) else int(r.end_round),
+                "y_a": None if pd.isna(r.y_a) else int(r.y_a),
+                "close_market_a": None if pd.isna(r.close_market_a) else float(r.close_market_a)}
+
+    def locked_bet(fid):
+        if not len(bet_idx) or fid not in bet_idx.index:
+            return None
+        b = bet_idx.loc[fid]
+        return {"pick": b.pick_name, "odds": float(b.odds_taken), "stake": float(b.stake), "result": b.result,
+                "pnl": None if pd.isna(b.pnl) else float(b.pnl),
+                "odds_closing": None if pd.isna(b.odds_closing) else float(b.odds_closing),
+                "clv": None if pd.isna(b.clv) else float(b.clv)}
+
     # ---------------- events + fights
     events = []
     for w in data["weekenden"]:
@@ -177,6 +205,8 @@ def main() -> int:
                 "pick": None if p is None else p.pick, "stake": None if p is None else p.stake,
                 "reasons": [] if p is None else json.loads(p["reasons"]), "method": {} if p is None else json.loads(p["method"]),
                 "flags": [] if p is None else json.loads(p["flags"]), "common": common,
+                "locked": bool(p is not None and not pd.isna(p.locked_at)),
+                "locked_bet": locked_bet(m["fight_id"]), "result": fight_result(m["fight_id"]),
             })
         for x in [x for x in ev["fights"] if x["kaart"] == "onbevestigd"]:
             fights.append({"id": f"{ev['id']}-{x['nr']:02d}", "card": "onbevestigd", "order": x["nr"],
@@ -186,7 +216,8 @@ def main() -> int:
                        "location": ev["locatie"], "times": ev.get("aanvang_nl", {}), "note": ev.get("notitie"),
                        "type": "PPV" if "UFC 3" in ev["naam"] else "Fight Night",
                        "complete": not ev.get("notitie"), "fights": fights,
-                       "locked_at": None})
+                       "locked_at": max((str(preds.loc[f["id"]].locked_at) for f in fights
+                                         if f["id"] in preds.index and not pd.isna(preds.loc[f["id"]].locked_at)), default=None)})
 
     # ---------------- backtest / prestaties
     W = pd.read_csv(REPORT_DIR / "backtest_with_odds.csv", parse_dates=["date"])
@@ -283,7 +314,9 @@ def main() -> int:
         ],
     }
 
-    open_bets = con.execute("SELECT * FROM bets ORDER BY placed_at").df().to_dict("records")
+    open_bets = con.execute("""SELECT b.*, p.event_id, p.event_date, p.fighter_a_name || ' vs ' || p.fighter_b_name AS fight
+        FROM bets b LEFT JOIN predictions p ON p.fight_id=b.fight_id AND p.model_version=b.model_version
+        ORDER BY b.placed_at""").df().to_dict("records")
     site = {
         "meta": {"version": version, "trained_until": bundle["trained_until"], "generated_at": datetime.now(),
                  "edge_min": EDGE_MIN, "kelly": KELLY_FRAC, "max_stake": MAX_STAKE, "bankroll": 1000},
@@ -294,7 +327,7 @@ def main() -> int:
                                 "hit": float(bets.won.mean()), "bankroll": float(bets.bank.iloc[-1]),
                                 "max_dd": float((1 - bets.bank / bets.bank.cummax()).max()),
                                 "curve": [{"date": r.date, "bank": r.bank} for r in bets.iloc[::5].itertuples()]}},
-        "bets": open_bets, "status": status,
+        "bets": open_bets, "paper": scorecard(con), "status": status,
     }
     (OUT / "site.json").write_text(json.dumps(clean(site), ensure_ascii=False))
     bt = W[["date", "y", "mm", "blend", "mkt_p", "odds_a", "odds_b"]].copy()
