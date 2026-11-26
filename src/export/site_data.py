@@ -260,19 +260,15 @@ def main(argv=None) -> int:
                "pick": r.fighter_a_name if r.mm > .5 else r.fighter_b_name, "prob": max(r.mm, 1 - r.mm),
                "mkt": max(r.mkt_p, 1 - r.mkt_p) if r.mm > .5 else max(r.mkt_p, 1 - r.mkt_p)} for r in wrong.itertuples()]
 
-    # afgelopen events met modelscore (backtest, out-of-sample)
+    # afgelopen events (alleen feiten; geen gesimuleerde modelscore per event)
     ev_df = con.execute("SELECT event_id, name, date, location FROM events ORDER BY date DESC LIMIT 40").df()
     fights_n = con.execute("SELECT event_id, count(*) n FROM fights GROUP BY 1").df().set_index("event_id").n
     allP = allP.merge(fx[["fight_id", "event_id"]], on="fight_id", how="left")
     past = []
     for r in ev_df.itertuples():
-        d = allP[allP.event_id == r.event_id]
-        bb = bets[bets.fight_id.isin(d.fight_id)]
         past.append({"id": r.event_id, "name": r.name, "date": r.date, "location": r.location,
                      "n_fights": int(fights_n.get(r.event_id, 0)),
-                     "type": "PPV" if r.name.startswith("UFC ") and r.name[4:5].isdigit() else "Fight Night",
-                     "accuracy": float(((d.blend > .5) == (d.y == 1)).mean()) if len(d) else None,
-                     "bets": len(bb), "pnl": float(bb.pnl.sum()) if len(bb) else 0.0})
+                     "type": "PPV" if r.name.startswith("UFC ") and r.name[4:5].isdigit() else "Fight Night"})
 
     # ---------------- data-status
     counts = db.row_counts(con)

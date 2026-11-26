@@ -188,7 +188,7 @@ const ICONS = {
   instellingen: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.6 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9.6 4.6V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z",
 };
 const NAV = [["overzicht", "Overzicht"], ["events", "Events"], ["fightcard", "Fight card"], ["matchup", "Matchup"], ["vechters", "Vechters"],
-  ["bets", "Bet-log"], ["prestaties", "Prestaties"], ["backtest", "Backtest"], ["nieuws", "Nieuws & kamp"], ["data", "Data-status"], ["instellingen", "Instellingen"]];
+  ["bets", "Bet-log"], ["prestaties", "Prestaties (backtest)"], ["backtest", "Backtest"], ["nieuws", "Nieuws & kamp"], ["data", "Data-status"], ["instellingen", "Instellingen"]];
 function renderNav(active) {
   $("#nav").innerHTML = NAV.map(([k, l]) => `<a href="#/${k}" class="${k === active ? "on" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[k]}"/></svg>${l}</a>`).join("");
 }
@@ -201,31 +201,29 @@ const disclaimer = `<div class="disclaimer">Persoonlijk onderzoeksproject. Er wo
 function settledBets() { return LOCAL_BETS.filter(b => b.result === "W" || b.result === "L"); }
 function betPnl(b) { return b.result === "W" ? b.stake * (b.odds - 1) : b.result === "L" ? -b.stake : 0; }
 function pageOverzicht() {
-  const P = D.performance, mm = P.metrics.find(m => m.model === "mm"), mk = P.metrics.find(m => m.model === "mkt_p");
-  const sb = settledBets(), pnl = sb.reduce((s, b) => s + betPnl(b), 0), staked = sb.reduce((s, b) => s + b.stake, 0);
-  const clvs = LOCAL_BETS.filter(b => b.closing).map(b => b.odds / b.closing - 1);
+  const PP = D.paper || {}, MB = D.bets || [];
+  const sb = MB.filter(b => ["W", "L", "push"].includes(b.result)), pnl = PP.pnl || 0, staked = PP.staked || 0;
   const ev = nextEvent(), fights = ev.fights.filter(f => f.card !== "onbevestigd");
   const vb = allFights().map(f => ({ f, a: advice(f) })).filter(x => x.a.status === "bet");
   const nOdds = fights.filter(f => f.odds_a != null).length;
   const flags = fights.reduce((s, f) => s + (f.flags || []).filter(x => x.type !== "data").length, 0);
-  const live = loadJSON("fm_chart", "backtest");
-  const curve = live === "live" ? liveCurve() : P.sim.curve.map(c => [new Date(c.date).getTime(), c.bank]);
+  const curve = modelCurve();
   const warn = [
     ...D.status.sources.filter(s => s.status !== "ok").map(s => ({ t: `${s.name}: ${s.note}`, lvl: s.status === "fout" ? "down" : "warn" })),
   ];
   return ph("Overzicht") + `
   <div class="kpis">
-    <div class="kpi"><div class="l">Bankroll (virtueel)</div><div class="v">${eur(S.bankroll + pnl)}</div><div class="s ${pnl >= 0 ? "up" : "down"}">${sb.length ? spct(pnl / S.bankroll) : "start testperiode"}</div></div>
-    <div class="kpi"><div class="l">Paper bets</div><div class="v">${LOCAL_BETS.length}</div><div class="s">${vb.length} value bet(s) open</div></div>
-    <div class="kpi"><div class="l">ROI</div><div class="v ${staked ? (pnl >= 0 ? "up" : "down") : ""}">${staked ? spct(pnl / staked) : "–"}</div><div class="s">backtest: ${spct(P.sim.roi)}</div></div>
-    <div class="kpi"><div class="l">Gem. CLV</div><div class="v">${clvs.length ? spct(clvs.reduce((a, b) => a + b, 0) / clvs.length) : "–"}</div><div class="s">${clvs.length ? clvs.length + " bets met slotodds" : "slotodds invullen in bet-log"}</div></div>
-    <div class="kpi"><div class="l">Log-loss model / markt</div><div class="v">${num(mm.log_loss, 3)}<span class="mut" style="font-size:15px"> / ${num(mk.log_loss, 3)}</span></div><div class="s ${mm.log_loss < mk.log_loss ? "up" : "down"}">${mm.log_loss < mk.log_loss ? "▲ net beter dan markt" : "▼ markt is beter"}</div></div>
-    <div class="kpi"><div class="l">Brier-score</div><div class="v">${num(mm.brier, 3)}</div><div class="s">markt ${num(mk.brier, 3)} · lager = beter</div></div>
+    <div class="kpi"><div class="l">Bankroll (virtueel)</div><div class="v">${eur(D.meta.bankroll + pnl)}</div><div class="s ${pnl >= 0 ? "up" : "down"}">${sb.length ? spct(pnl / D.meta.bankroll) : "start 5 dec"}</div></div>
+    <div class="kpi"><div class="l">Model-bets</div><div class="v">${MB.length}</div><div class="s">${MB.length ? sb.length + " afgerekend" : "vastgezet op de vechtdag"}</div></div>
+    <div class="kpi"><div class="l">ROI</div><div class="v ${staked ? (pnl >= 0 ? "up" : "down") : ""}">${staked ? spct(PP.roi) : "–"}</div><div class="s">${staked ? "over " + eur(staked) + " inzet" : "nog geen uitslagen"}</div></div>
+    <div class="kpi"><div class="l">Gem. CLV</div><div class="v">${PP.avg_clv != null ? spct(PP.avg_clv) : "–"}</div><div class="s">t.o.v. Unibet-slotodds</div></div>
+    <div class="kpi"><div class="l">Gevechten goed</div><div class="v">${PP.fights ? pct(PP.accuracy) : "–"}</div><div class="s">${PP.fights ? PP.fights + " gevechten" : "nog geen uitslagen"}</div></div>
+    <div class="kpi"><div class="l">Log-loss model / markt</div><div class="v">${PP.n_market ? num(PP.model_log_loss_same, 3) + `<span class="mut" style="font-size:15px"> / ${num(PP.market_log_loss, 3)}</span>` : "–"}</div><div class="s">${PP.n_market ? (PP.model_log_loss_same < PP.market_log_loss ? "▲ beter dan markt" : "▼ markt is beter") : "lager = beter"}</div></div>
   </div>
   <div class="grid g21">
-    <div class="card"><h3>Bankroll (paper trading)<span class="r tabs" style="margin:0"><button class="tab sm ${live === "live" ? "on" : ""}" data-chart="live">Live</button><button class="tab sm ${live !== "live" ? "on" : ""}" data-chart="backtest">Backtest</button></span></h3>
-      ${curve.length > 1 ? lineChart({ series: [{ pts: curve, color: "#22c55e", area: true }], yfmt: v => "€" + Math.round(v).toLocaleString("nl-NL"), xfmt: v => live === "live" ? fdateShort(new Date(v).toISOString().slice(0, 10)) : new Date(v).getFullYear(), baseline: S.bankroll }) : `<div class="empty">Nog geen afgeronde virtuele bets. De live-curve start na het eerste event (5 dec).</div>`}
-      <div class="note">${live === "live" ? "Jouw virtuele bets uit de bet-log." : `Walk-forward backtest 2017-2026 op slotodds · ${P.sim.bets} bets · max drawdown ${pct(P.sim.max_dd, 0)}.`}</div></div>
+    <div class="card"><h3>Bankroll (paper trading)</h3>
+      ${curve.length > 1 ? lineChart({ series: [{ pts: curve, color: "#22c55e", area: true }], yfmt: v => "€" + Math.round(v).toLocaleString("nl-NL"), xfmt: v => fdateShort(new Date(v).toISOString().slice(0, 10)), baseline: D.meta.bankroll }) : `<div class="empty">Nog geen resultaten: de test begint op 5 december.<br>Hier verschijnt dan de bankroll van de model-bets.</div>`}
+      <div class="note">Alleen echte vastgezette model-bets, afgerekend op de uitslag. Hoe het model het historisch had gedaan staat apart onder <a href="#/prestaties" style="text-decoration:underline">Prestaties (backtest)</a>.</div></div>
     <div class="card"><h3>Volgend event</h3>
       <div style="font:800 22px var(--head)">${esc(ev.name)}</div>
       <div class="rec">${fdate(ev.date)} · ${esc(ev.location)}</div>
@@ -244,11 +242,17 @@ function pageOverzicht() {
       ${vb.map(({ f, a }) => `<tr class="cl" data-href="#/matchup/${f.id}"><td>${esc(last(f.a.name))} vs ${esc(last(f.b.name))}</td><td>${esc(a.pick)}</td><td class="num">${num(a.dec)}</td><td class="num up">${spct(a.edge)}</td><td class="num">${eur(a.stake)}</td></tr>`).join("")}</table></div>`
       : `<div class="empty">Geen value bets met je huidige drempel (${pct(S.edge, 0)} edge).<br>${allFights().filter(f => f.odds_a != null).length} van ${allFights().filter(f => f.card !== "onbevestigd").length} gevechten hebben al odds.</div>`}</div>
     <div class="card"><h3>Laatste resultaten (${sb.length})</h3>
-      ${sb.length ? sb.slice(-5).reverse().map(b => `<div class="srow"><span>${b.result === "W" ? "✅" : "❌"} ${esc(b.fight)}</span><b class="${betPnl(b) >= 0 ? "up" : "down"}">${seur(betPnl(b))}</b></div>`).join("") : `<div class="empty">Nog geen afgerekende bets.</div>`}
+      ${sb.length ? sb.slice(-5).reverse().map(b => `<div class="srow"><span>${b.result === "W" ? "✅" : b.result === "L" ? "❌" : "➖"} ${esc(b.fight || b.fight_id)}</span><b class="${b.pnl >= 0 ? "up" : "down"}">${seur(b.pnl)}</b></div>`).join("") : `<div class="empty">Nog geen afgerekende model-bets (eerste event: 5 dec).</div>`}
       <h3 style="margin-top:16px">Waarschuwingen</h3>
       ${warn.map(w => `<div class="srow"><span class="${w.lvl}">⚠</span><span style="flex:1">${esc(w.t)}</span></div>`).join("")}
     </div>
   </div>` + disclaimer;
+}
+function modelCurve() {
+  let bank = D.meta.bankroll; const pts = [];
+  (D.bets || []).filter(b => ["W", "L", "push"].includes(b.result)).sort((a, b) => String(a.event_date).localeCompare(String(b.event_date)))
+    .forEach(b => { bank += b.pnl || 0; pts.push([new Date(String(b.event_date).slice(0, 10)).getTime(), bank]); });
+  return pts.length ? [[pts[0][0] - 864e5, D.meta.bankroll], ...pts] : [];
 }
 function liveCurve() {
   let bank = S.bankroll; const pts = [];
@@ -266,17 +270,16 @@ function pageEvents() {
   if (tab === "up") {
     body = up.map(e => e.none ? `<div class="card evcard"><div class="evimg" style="opacity:.4">–</div><div><div class="nm" style="font-size:17px">Weekend ${esc(e.weekend.replace("/", "–"))}</div><div class="rec">${esc(e.note || "Geen event")}</div></div></div>` : evCard(e)).join("");
   } else {
-    const list = past.filter(e => (year === "alle" || e.date.startsWith(year)) && (type === "alle" || e.type === type) && (!onlyBets || e.bets > 0));
-    body = `<div class="card tw"><table><tr><th>Event</th><th>Datum</th><th>Locatie</th><th class="num">Gevechten</th><th class="num">Model goed</th><th class="num">Bets (backtest)</th><th class="num">W/V</th></tr>
-    ${list.map(e => `<tr><td><span class="tag ${e.type === "PPV" ? "ppv" : "fn"}">${e.type}</span> <b>${esc(e.name)}</b></td><td>${fdate(e.date)}</td><td class="rec">${esc(e.location)}</td><td class="num">${e.n_fights}</td><td class="num">${pct(e.accuracy, 0)}</td><td class="num">${e.bets}</td><td class="num ${e.pnl >= 0 ? "up" : "down"}">${e.bets ? seur(e.pnl) : "–"}</td></tr>`).join("")}</table>
-    <div class="note">"Model goed" = out-of-sample backtest (model zonder odds). Bets = gesimuleerde value bets van model + markt. Events na 8 aug 2026 ontbreken nog in de data.</div></div>`;
+    const list = past.filter(e => (year === "alle" || e.date.startsWith(year)) && (type === "alle" || e.type === type));
+    body = `<div class="card tw"><table><tr><th>Event</th><th>Datum</th><th>Locatie</th><th class="num">Gevechten</th></tr>
+    ${list.map(e => `<tr><td><span class="tag ${e.type === "PPV" ? "ppv" : "fn"}">${e.type}</span> <b>${esc(e.name)}</b></td><td>${fdate(e.date)}</td><td class="rec">${esc(e.location)}</td><td class="num">${e.n_fights}</td></tr>`).join("")}</table>
+    <div class="note">Historische events uit de trainingsdata (t/m 8 aug 2026). Het model heeft hier niet live op voorspeld; de backtest staat onder Prestaties.</div></div>`;
   }
   return ph("Events") + `<div class="filters">
     <button class="tab ${tab === "up" ? "on" : ""}" data-evtab="up">Komend (${up.filter(e => !e.none).length})</button>
     <button class="tab ${tab === "past" ? "on" : ""}" data-evtab="past">Afgelopen (${past.length})</button>
     ${tab === "past" ? `<select data-evyear><option value="alle">Alle jaren</option>${years.map(y => `<option ${y === year ? "selected" : ""}>${y}</option>`).join("")}</select>
-    <select data-evtype><option value="alle">Alle types</option><option ${type === "PPV" ? "selected" : ""}>PPV</option><option ${type === "Fight Night" ? "selected" : ""}>Fight Night</option></select>
-    <label class="toggle"><input type="checkbox" data-evbets ${onlyBets ? "checked" : ""}> Alleen met bets</label>` : ""}
+    <select data-evtype><option value="alle">Alle types</option><option ${type === "PPV" ? "selected" : ""}>PPV</option><option ${type === "Fight Night" ? "selected" : ""}>Fight Night</option></select>` : ""}
   </div>${body}` + disclaimer;
 }
 function evCard(e) {
@@ -512,7 +515,8 @@ function pagePrestaties() {
   if (tab === "kalibratie") body = `<div class="grid g2">${cal}${ll}</div><div style="margin-top:14px">${comp}</div>`;
   if (tab === "features") body = imp(15);
   if (tab === "segmenten") body = `<div class="grid g2">${seg}${miss}</div>`;
-  return ph("Modelprestaties", { sub: `Walk-forward backtest: per jaar getraind op alleen eerdere gevechten. Model ${esc(D.meta.version)}.` }) +
+  return ph("Modelprestaties (backtest)", { sub: `Walk-forward backtest: per jaar getraind op alleen eerdere gevechten. Model ${esc(D.meta.version)}.` }) +
+    `<div class="advice" style="margin:0 0 14px"><span class="warn">⚠</span>Dit is een <b>simulatie op historische data</b>, geen echte resultaten. Het model zet pas sinds 5 december 2026 (virtueel) in; die echte resultaten staan op het Overzicht en in de Bet-log.</div>` +
     `<div class="tabs">${[["overzicht", "Overzicht"], ["kalibratie", "Kalibratie"], ["features", "Feature importance"], ["segmenten", "Segmenten & missers"]].map(([k, l]) => `<button class="tab ${k === tab ? "on" : ""}" data-ptab="${k}">${l}</button>`).join("")}</div>` + body + disclaimer;
 }
 
