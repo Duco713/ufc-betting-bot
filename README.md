@@ -9,6 +9,7 @@ Persoonlijk onderzoeksproject: een statistisch model dat MMA-gevechten voorspelt
 | Stap | Commando | Wat |
 |---|---|---|
 | 1 | `.venv/bin/python -m src.importers.kaggle --download` | Historische data (gevechten, stats per ronde, odds) in `data/ufc.duckdb` |
+| 1b | `.venv/bin/python -m src.importers.wikipedia` | Uitslagen van events na de Kaggle-data (Wikipedia): winnaar, methode, ronde. Telt mee voor Elo, record en vorm; geen stats per ronde. Draait mee in de ververs-taak |
 | 2 | `.venv/bin/python -m src.models.train` | Point-in-time features + Elo, walk-forward backtest 2016-2026, eindmodel → `reports/backtest.md` |
 | 2b | `.venv/bin/python -m src.scrapers.bestfightodds` | Actuele odds per bookmaker (snapshot met tijdstempel → `odds_snapshots`); draai dit een paar keer per week voor lijnbeweging |
 | ⏱ | `scripts/refresh_odds.sh` | **Automatisch verversen:** stap 2b + 3 + 4 + push in één keer. Draait elke dag om 09:00 en 21:00 als geplande taak in de Claude-app (macOS blokkeert launchd/cron op de Bureaublad-map) |

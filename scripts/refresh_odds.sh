@@ -7,6 +7,7 @@ cd "$(dirname "$0")/.."
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') ==="
 PY=.venv/bin/python
 $PY -m src.scrapers.bestfightodds
+$PY -m src.importers.wikipedia || echo "Wikipedia-import mislukt (overgeslagen)"   # nieuwe uitslagen -> Elo, vorm
 $PY -m src.predict.upcoming --auto-lock | grep -E "Vastgezet|Alles" || true   # vechtdag: vastzetten
 $PY -m src.settle > /dev/null                               # uitslagen (data/results/uitslagen.json) afrekenen
 $PY -m src.export.site_data

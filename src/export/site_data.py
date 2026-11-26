@@ -272,6 +272,7 @@ def main(argv=None) -> int:
 
     # ---------------- data-status
     counts = db.row_counts(con)
+    n_wiki = con.execute("SELECT count(*) FROM fights WHERE url LIKE '%wikipedia%'").fetchall()[0][0]
     allf = [f for e in events if not e.get("none") for f in e["fights"] if f["card"] != "onbevestigd"]
     n_sb = sum(1 for f in allf if (f.get("odds_info") or {}).get("kind") == "sportsbooks")
     n_pm = sum(1 for f in allf if (f.get("odds_info") or {}).get("kind") == "prediction market")
@@ -283,10 +284,11 @@ def main(argv=None) -> int:
     status = {
         "counts": counts,
         "sources": [
-            {"name": "Events & gevechten", "source": "Kaggle neelagiriaditya (ufcstats)", "until": str(ms), "status": "achter",
-             "note": "Events na 8 aug 2026 ontbreken (~14 events)"},
-            {"name": "Stats per ronde", "source": "Kaggle neelagiriaditya (ufcstats)", "until": str(ms), "status": "achter",
-             "note": f"{counts['fight_stats_round']:,} rijen".replace(",", ".")},
+            {"name": "Events & gevechten", "source": "Kaggle (t/m 8 aug) + Wikipedia (uitslagen)", "until": str(con.execute(
+                "SELECT max(event_date) FROM fights").fetchall()[0][0]), "status": "ok",
+             "note": f"{n_wiki} recente gevechten alleen met uitslag (geen stats per ronde)"},
+            {"name": "Stats per ronde", "source": "Kaggle neelagiriaditya (ufcstats)", "until": str(con.execute("SELECT max(f.event_date) FROM fights f JOIN fight_stats_round s USING(fight_id)").fetchall()[0][0]), "status": "achter",
+             "note": f"{counts['fight_stats_round']:,} rijen; na 8 aug geen stats".replace(",", ".")},
             {"name": "Odds (historisch)", "source": "Kaggle mdabbert", "until": "2026-03-28", "status": "achter",
              "note": "Slotodds, 95% gekoppeld"},
             odds_status,

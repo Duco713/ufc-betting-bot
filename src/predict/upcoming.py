@@ -167,7 +167,7 @@ def main(argv=None) -> int:
                 flags.append({"type": "debuut", "fighter": nm, "text": "UFC-debuut: geen UFC-stats, lage betrouwbaarheid"})
         if r.get("d_days_since") is not None and not pd.isna(r.d_days_since) and abs(r.d_days_since) > 365:
             flags.append({"type": "layoff", "fighter": "", "text": "Groot verschil in tijd sinds laatste gevecht"})
-        flags.append({"type": "data", "fighter": "", "text": "Stats t/m 8 aug 2026: recentere gevechten ontbreken"})
+        flags.append({"type": "data", "fighter": "", "text": "Uitslagen t/m 21 nov 2026; stats per ronde t/m 8 aug 2026"})
         if odds_info and odds_info["kind"] != "sportsbooks":
             flags.append({"type": "odds", "fighter": "", "text": "Alleen prediction-market-odds (Polymarket): indicatief, geen virtuele inzet"})
         lock_now = m["fight_id"] not in locked and (a.lock or (a.auto_lock and m["event"]["datum"] <= today))
