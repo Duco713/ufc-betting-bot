@@ -11,5 +11,18 @@
       "Geen underdog-gokjes of longshots: dat verloor in de backtest structureel geld."
     ],
     "regel": "Het definitieve advies wordt op 5 dec om 09:00 vastgezet met de odds van dat moment. Dit is de eerste testweek: speel mee op papier of met een heel klein bedrag."
+  },
+  "ufc-335": {
+    "geschreven": "2026-11-26T17:00",
+    "kort": "Nog te vroeg: alleen de twee topgevechten hebben odds en daar zit geen value in. Voorlopig niets inzetten; ik kijk opnieuw zodra de rest van de kaart geprijsd is.",
+    "uitleg": [
+      "Oliveira vs Lopes: het model geeft Oliveira ~59%, de markt ~58%. Te weinig verschil, en bij Unibet (-155) is het verwachte rendement negatief. Passen.",
+      "Pavlovich vs Pereira: het model ziet Pavlovich iets beter dan de markt (~3% edge), maar bij -200 is dat net niet genoeg. Pas bij ongeveer -195 of beter wordt het een kleine bet. In de gaten houden.",
+      "Moreno, Phillips, Pinas, Barber en Pasley hebben nog geen odds. De percentages die je daar ziet zijn van het model alleen, en dat model is in z'n eentje minder goed dan de markt. Daar dus nog niets op baseren.",
+      "Pasley vs Tafa: Pasley debuteert in de UFC, het model weet weinig over hem.",
+      "Pyfer vs Nickal is nog niet bevestigd en telt niet mee.",
+      "Het event is pas over ruim twee weken: invallers en afzeggingen zijn bij PPV's nog heel gewoon. Daarom niets vroeg vastleggen."
+    ],
+    "regel": "Het definitieve advies wordt op 12 dec om 09:00 vastgezet (de main card begint zondag 13 dec om 03:00 NL). Ik werk deze toelichting bij zodra alle gevechten odds hebben."
   }
 }

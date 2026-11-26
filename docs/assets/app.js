@@ -219,7 +219,7 @@ function adviesCard(e) {
         <div class="srow" style="margin-top:8px"><b>Net niet (${near.length})</b><span class="mut">edge ≥ 2%, geen value</span></div>
         ${near.map(x => `<div class="srow cl" data-href="#/matchup/${x.f.id}"><span>👀 ${nm(x)} <span class="mut">edge ${spct(x.a.edge)}${x.a.ev != null ? " · rendement " + spct(x.a.ev) : ""}</span></span></div>`).join("") || `<div class="srow"><span class="mut">–</span></div>`}
         <div class="srow" style="margin-top:8px"><span>⏸ Wacht op odds: ${wait.length ? wait.map(x => esc(last(x.f.a.name)) + " vs " + esc(last(x.f.b.name))).join(", ") : "geen"}</span></div>
-        <div class="srow"><span>✋ Passen: <b>${pass}</b> gevechten (model ≈ markt)</span></div>
+        <div class="srow"><span>✋ Passen: <b>${pass}</b> ${pass === 1 ? "gevecht" : "gevechten"} (model ≈ markt)</span></div>
       </div>
       <div>${A ? `<ul style="margin:0;padding-left:18px;line-height:1.5">${A.uitleg.map(t => `<li style="margin-bottom:6px">${esc(t)}</li>`).join("")}</ul>` : `<div class="empty">Nog geen toelichting voor dit event.</div>`}</div>
     </div>
