@@ -110,6 +110,13 @@ CREATE TABLE IF NOT EXISTS odds (
     PRIMARY KEY (fight_id, source, captured)
 );
 
+-- uitslagen van andere organisaties (src/importers/wiki_orgs.py)
+CREATE TABLE IF NOT EXISTS ext_fights (
+    fight_id VARCHAR PRIMARY KEY, org VARCHAR, tier INTEGER, event_name VARCHAR, event_date DATE,
+    a_name VARCHAR, b_name VARCHAR, a_key VARCHAR, b_key VARCHAR, kind VARCHAR,
+    method VARCHAR, end_round INTEGER, weight_class VARCHAR, source VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS upcoming_fights (
     fight_id       VARCHAR PRIMARY KEY,
     event_id       VARCHAR,
@@ -149,6 +156,7 @@ PRIMARY_KEYS = {
     "fight_stats_round": ["fight_id", "fighter_id", "round"],
     "upcoming_fights": ["fight_id"],
     "odds": ["fight_id", "source", "captured"],
+    "ext_fights": ["fight_id"],
 }
 
 
