@@ -1,4 +1,4 @@
-# Voorspellingen (v0.1-20261122, 2026-11-28 09:14)
+# Voorspellingen (v0.1-20261122, 2026-11-28 14:38)
 
 | Datum | Gevecht | Kans A / B | Markt A | Edge | Unibet A / B | Advies | Inzet € |
 |---|---|---|---|---|---|---|---|
