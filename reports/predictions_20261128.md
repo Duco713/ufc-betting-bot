@@ -1,4 +1,4 @@
-# Voorspellingen (v0.1-20261122, 2026-11-28 01:47)
+# Voorspellingen (v0.1-20261122, 2026-11-28 09:14)
 
 | Datum | Gevecht | Kans A / B | Markt A | Edge | Unibet A / B | Advies | Inzet € |
 |---|---|---|---|---|---|---|---|
@@ -12,7 +12,7 @@
 | 2026-12-05 | Uran Satybaldiev vs Ivan Gnizditskiy | 54.2% / 45.8% | 53.1% | +1.2% | -127 / +102 | geen value | 0 |
 | 2026-12-05 | Marco Tulio vs JunYong Park | 62.8% / 37.2% | 60.7% | +2.1% | -175 / +140 | geen value | 0 |
 | 2026-12-05 | Pavel Andrusca vs Mehemmedeli Osmanli | 62.5% / 37.5% |  |  |  | wacht op odds | 0 |
-| 2026-12-05 | Modestino Rodrigues vs Matthieu Duclos | 43.0% / 57.0% | 43.7% | +0.7% | +116 / -143 | geen value | 0 |
+| 2026-12-05 | Modestino Rodrigues vs Matthieu Duclos | 43.3% / 56.7% | 44.0% | +0.7% | +116 / -143 | geen value | 0 |
 | 2026-12-05 | Abdul Hussein vs Hecher Sosa | 61.6% / 38.4% | 61.0% | +0.7% | -180 / +143 | geen value | 0 |
 | 2026-12-05 | Gabriel Santos vs Luke Riley | 42.7% / 57.3% | 43.9% | +1.2% | +116 / -143 | geen value | 0 |
 | 2026-12-05 | Elves Brener vs Mateusz Rebecki | 43.9% / 56.1% | 44.6% | +0.7% | +108 / -134 | geen value | 0 |
